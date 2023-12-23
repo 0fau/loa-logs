@@ -74,6 +74,7 @@ pub struct Encounter {
     pub favorite: bool,
     pub cleared: bool,
     pub boss_only_damage: bool,
+    pub sync: Option<i32>,
 }
 
 #[derive(Debug, Serialize, Clone, Default)]
@@ -497,6 +498,7 @@ pub struct Settings {
     pub meter: MeterTabs,
     pub logs: LogTabs,
     pub buffs: BuffSettings,
+    pub sync: SyncSettings,
 }
 
 #[derive(Default, Debug, Clone, PartialEq, Serialize, Deserialize)]
@@ -538,6 +540,18 @@ pub struct GeneralSettings {
     pub boss_only_damage: bool,
     #[serde(default = "default_true")]
     pub keep_favorites: bool,
+}
+
+#[derive(Default, Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase", default)]
+pub struct SyncSettings {
+    pub enabled: bool,
+    pub access_token: String,
+    pub auto: bool,
+    pub min_gear_score: String,
+    pub normal: bool,
+    pub inferno: bool,
+    pub excluded_characters: Vec<String>,
 }
 
 #[derive(Default, Debug, Clone, PartialEq, Serialize, Deserialize)]

@@ -1,9 +1,10 @@
 #![cfg_attr(
-    all(not(debug_assertions), target_os = "windows"),
-    windows_subsystem = "windows"
+all(not(debug_assertions), target_os = "windows"),
+windows_subsystem = "windows"
 )]
 
 mod parser;
+
 use std::{
     fs::{self, File},
     io::{Read, Write},
@@ -122,7 +123,8 @@ async fn main() -> Result<()> {
                             right_name.clone().into_iter().find(|iface| iface.1 == ip);
                         if perfect_match.is_none() {
                             //in case of multiple interfaces with same name, try the first one
-                            ip = right_name[0].1.clone(); //get the up to date ip
+                            ip = right_name[0].1.clone();
+                            //get the up to date ip
                             warn!("ip for manual interface was wrong, using ip: {}", ip);
                         }
                     } else {
@@ -170,7 +172,7 @@ async fn main() -> Result<()> {
 
             // #[cfg(debug_assertions)]
             // {
-            //     _logs_window.open_devtools();
+            //     logs_window.open_devtools();
             // }
 
             Ok(())
@@ -281,6 +283,7 @@ async fn main() -> Result<()> {
             toggle_logs_window,
             open_url,
             save_settings,
+            sync,
             get_settings,
             open_folder,
             open_db_path,
@@ -296,6 +299,7 @@ async fn main() -> Result<()> {
             enable_aot,
             disable_aot,
             set_clickthrough,
+            get_sync_candidates,
         ])
         .run(tauri::generate_context!())
         .expect("error while running application");
@@ -391,7 +395,7 @@ fn setup_db(resource_path: PathBuf) -> Result<(), String> {
             "ALTER TABLE encounter ADD COLUMN favorite BOOLEAN DEFAULT 0",
             [],
         )
-        .expect("failed to add columns");
+            .expect("failed to add columns");
         conn.execute(
             &format!(
                 "ALTER TABLE encounter ADD COLUMN version INTEGER DEFAULT {}",
@@ -399,14 +403,14 @@ fn setup_db(resource_path: PathBuf) -> Result<(), String> {
             ),
             [],
         )
-        .expect("failed to add columns");
+            .expect("failed to add columns");
         conn.execute("ALTER TABLE encounter ADD COLUMN cleared BOOLEAN", [])
             .expect("failed to add columns");
         conn.execute(
             "CREATE INDEX IF NOT EXISTS encounter_favorite_index ON encounter (favorite);",
             [],
         )
-        .expect("failed to add index");
+            .expect("failed to add index");
     }
 
     let mut stmt = conn
@@ -420,7 +424,7 @@ fn setup_db(resource_path: PathBuf) -> Result<(), String> {
             "ALTER TABLE encounter ADD COLUMN boss_only_damage BOOLEAN NOT NULL DEFAULT 0",
             [],
         )
-        .expect("failed to add column");
+            .expect("failed to add column");
     }
 
     match conn.execute_batch(
@@ -468,6 +472,36 @@ fn setup_db(resource_path: PathBuf) -> Result<(), String> {
     }
 
     update_db(&conn);
+
+    match conn.execute(
+        "
+    CREATE TABLE IF NOT EXISTS sync (
+        encounter_id INTEGER PRIMARY KEY,
+        upstream_id INTEGER NOT NULL,
+        failed BOOLEAN NOT NULL,
+        FOREIGN KEY (encounter_id) REFERENCES encounter (id) ON DELETE CASCADE
+    );
+        ", []) {
+        Ok(_) => (),
+        Err(e) => {
+            return Err(e.to_string());
+        }
+    }
+
+    let mut stmt = conn
+        .prepare("SELECT COUNT(*) FROM pragma_table_info('sync') WHERE name='failed'")
+        .unwrap();
+    let column_count: u32 = stmt.query_row([], |row| row.get(0)).unwrap();
+    if column_count == 0 {
+        conn.execute_batch(
+            "
+                BEGIN;
+                ALTER TABLE sync ADD COLUMN failed BOOLEAN;
+                UPDATE sync SET failed = false;
+                COMMIT;
+            "
+        ).expect("failed to add boolean column");
+    }
 
     Ok(())
 }
@@ -835,9 +869,51 @@ fn load_encounter(window: tauri::Window, id: String) -> Encounter {
         entities.insert(entity.name.to_string(), entity);
     }
 
+    let mut sync_stmt = conn
+        .prepare_cached(
+            "
+    SELECT upstream_id
+    FROM sync
+    WHERE encounter_id = ? AND failed = false;
+            "
+        )
+        .unwrap();
+
+    let sync: Result<i32, rusqlite::Error> = sync_stmt.query_row(params![id], |row| row.get(0));
+    encounter.sync = sync.ok();
+
     encounter.entities = entities;
 
     encounter
+}
+
+#[tauri::command]
+fn get_sync_candidates(window: tauri::Window) -> Vec<i32> {
+    let path = window
+        .app_handle()
+        .path_resolver()
+        .resource_dir()
+        .expect("could not get resource dir");
+    let conn = get_db_connection(&path).expect("could not get db connection");
+
+    let mut stmt = conn
+        .prepare_cached(
+            "
+    SELECT id
+    FROM encounter
+    LEFT JOIN sync ON encounter_id = id
+    WHERE cleared = true AND upstream_id IS NULL
+        AND difficulty IS NOT NULL ORDER BY fight_start;
+            "
+        )
+        .unwrap();
+    let rows = stmt.query_map([], |row| row.get(0)).unwrap();
+
+    let mut ids = Vec::new();
+    for id_result in rows {
+        ids.push(id_result.unwrap_or(0));
+    }
+    ids
 }
 
 #[tauri::command]
@@ -1072,16 +1148,33 @@ fn delete_encounters_below_min_duration(
             WHERE duration < ? AND favorite = 0;",
             params![min_duration * 1000],
         )
-        .unwrap();
+            .unwrap();
     } else {
         conn.execute(
             "DELETE FROM encounter
             WHERE duration < ?;",
             params![min_duration * 1000],
         )
-        .unwrap();
+            .unwrap();
     }
     conn.execute("VACUUM;", params![]).unwrap();
+}
+
+#[tauri::command]
+fn sync(window: tauri::Window, encounter: i32, upstream: i32, failed: bool) {
+    let path = window
+        .app_handle()
+        .path_resolver()
+        .resource_dir()
+        .expect("could not get resource dir");
+    let conn = get_db_connection(&path).expect("could not get db connection");
+
+    conn.execute(
+        "
+        INSERT OR REPLACE INTO sync (encounter_id, upstream_id, failed)
+        VALUES(?, ?, ?);
+        ",
+        params![encounter, upstream, failed]).unwrap();
 }
 
 #[tauri::command]
@@ -1098,14 +1191,14 @@ fn delete_all_uncleared_encounters(window: tauri::Window, keep_favorites: bool) 
             WHERE cleared = 0 AND favorite = 0;",
             [],
         )
-        .unwrap();
+            .unwrap();
     } else {
         conn.execute(
             "DELETE FROM encounter
             WHERE cleared = 0;",
             [],
         )
-        .unwrap();
+            .unwrap();
     }
     conn.execute("VACUUM;", params![]).unwrap();
 }
@@ -1125,7 +1218,7 @@ fn delete_all_encounters(window: tauri::Window, keep_favorites: bool) {
             WHERE favorite = 0;",
             [],
         )
-        .unwrap();
+            .unwrap();
     } else {
         conn.execute("DELETE FROM encounter", []).unwrap();
     }

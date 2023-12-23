@@ -1,11 +1,10 @@
 {
-    "version": "v1.4.9",
-    "notes": "### v1.4.9\n#### BUG FIXES\n- fix search filter for voldis abyss dungeons\nfull patch notes on github\nsend bug reports/suggestions to discord.gg/sbSa3pkDF5",
-    "pub_date": "2023-12-21T07:53:19.331Z",
+    "version": "v1.4.9-sync",
+    "pub_date": "2023-12-23T20:37:50+00:00",
     "platforms": {
         "windows-x86_64": {
             "url": "https://github.com/snoww/loa-logs/releases/download/v1.4.9/LOA.Logs_1.4.9_x64-setup.nsis.zip",
-            "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVUYWhFaUdQWk9GYmVkeXN2b1pyb0JGTTBjRFNFd1h1dFhKZ3Z1aE04aVRMVTd0aTlvNVVDdkUvWE5ubGU2TE82cGI5ZnlDbWwyT1lXWkZyQmlyTGloblpZdGVONTVoSGdvPQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzAzMTQ1MDE2CWZpbGU6TE9BIExvZ3NfMS40LjlfeDY0LXNldHVwLm5zaXMuemlwCis4Qld5Z1JYRS8xTkFuejNsS2hZcGxkN1JlOE9OVWdmWXhiNFlmVGhBZVRncllsQ0NuOGREb2JGRGYvdjAyeXBtM0pnQnF4Uloxa29Hb2ptdG9JVkRRPT0K"
+            "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IDcwNkREOEEwREY0RUZFN0IKUldSNy9rN2ZvTmh0Y0hCa0RSYnlTQUdkWDlpMDlUQUpETTlDWlJlei8vandwTThzK3c3MTBoOC8K"
         }
     }
 }

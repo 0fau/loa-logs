@@ -469,9 +469,9 @@ impl EncounterState {
         // check if target is player and source is boss
         if self.boss_only_damage
             && ((target_entity.entity_type != EntityType::BOSS
-                && target_entity.entity_type != EntityType::PLAYER)
-                || (target_entity.entity_type == EntityType::PLAYER
-                    && source_entity.entity_type != EntityType::BOSS))
+            && target_entity.entity_type != EntityType::PLAYER)
+            || (target_entity.entity_type == EntityType::PLAYER
+            && source_entity.entity_type != EntityType::BOSS))
         {
             return;
         }
@@ -592,10 +592,10 @@ impl EncounterState {
                     .unknown_buffs
                     .contains(buff_id)
                     && !self
-                        .encounter
-                        .encounter_damage_stats
-                        .buffs
-                        .contains_key(buff_id)
+                    .encounter
+                    .encounter_damage_stats
+                    .buffs
+                    .contains_key(buff_id)
                 {
                     if let Some(status_effect) = get_status_effect_data(*buff_id) {
                         self.encounter
@@ -630,10 +630,10 @@ impl EncounterState {
                     .unknown_buffs
                     .contains(debuff_id)
                     && !self
-                        .encounter
-                        .encounter_damage_stats
-                        .debuffs
-                        .contains_key(debuff_id)
+                    .encounter
+                    .encounter_damage_stats
+                    .debuffs
+                    .contains_key(debuff_id)
                 {
                     if let Some(status_effect) = get_status_effect_data(*debuff_id) {
                         self.encounter
@@ -851,14 +851,14 @@ impl EncounterState {
             if self.encounter.fight_start == 0
                 || self.encounter.current_boss_name.is_empty()
                 || !self
-                    .encounter
-                    .entities
-                    .contains_key(&self.encounter.current_boss_name)
+                .encounter
+                .entities
+                .contains_key(&self.encounter.current_boss_name)
                 || !self
-                    .encounter
-                    .entities
-                    .values()
-                    .any(|e| e.entity_type == EntityType::PLAYER && e.damage_stats.damage_dealt > 0)
+                .encounter
+                .entities
+                .values()
+                .any(|e| e.entity_type == EntityType::PLAYER && e.damage_stats.damage_dealt > 0)
             {
                 return;
             }
@@ -893,6 +893,7 @@ impl EncounterState {
         let raid_clear = self.raid_clear;
         let party_info = self.party_info.clone();
         let raid_difficulty = self.raid_difficulty.clone();
+        let window = self.window.clone();
 
         task::spawn(async move {
             info!("saving to db - {}", encounter.current_boss_name);
@@ -900,7 +901,7 @@ impl EncounterState {
             let mut conn = Connection::open(path).expect("failed to open database");
             let tx = conn.transaction().expect("failed to create transaction");
 
-            insert_data(
+            let encounter_id = insert_data(
                 &tx,
                 encounter,
                 prev_stagger,
@@ -917,6 +918,12 @@ impl EncounterState {
 
             tx.commit().expect("failed to commit transaction");
             info!("saved to db");
+
+            if raid_clear {
+                window
+                    .emit("clear-encounter", encounter_id)
+                    .expect("failed to emit clear-encounter");
+            }
         });
     }
 }
@@ -1077,7 +1084,7 @@ fn get_status_effect_buff_type_flags(buff: &SkillBuffData) -> u32 {
                 "combat_mp_recovery_rate",
                 "resource_recovery_rate",
             ]
-            .contains(&key_stat_str)
+                .contains(&key_stat_str)
             {
                 buff_type |= StatusEffectBuffTypeFlags::RESOURCE;
             } else if [
@@ -1094,7 +1101,7 @@ fn get_status_effect_buff_type_flags(buff: &SkillBuffData) -> u32 {
                 "drain_hp_dam_rate",
                 "vitality",
             ]
-            .contains(&key_stat_str)
+                .contains(&key_stat_str)
             {
                 buff_type |= StatusEffectBuffTypeFlags::HP;
             } else if STAT_TYPE_MAP["def"] <= stat && stat <= STAT_TYPE_MAP["magical_inc_rate"]
@@ -1118,7 +1125,7 @@ fn get_status_effect_buff_type_flags(buff: &SkillBuffData) -> u32 {
                 "rapidity",
                 "rapidity_x",
             ]
-            .contains(&key_stat_str)
+                .contains(&key_stat_str)
             {
                 buff_type |= StatusEffectBuffTypeFlags::ATKSPEED;
             } else if ["critical_hit_rate", "criticalhit", "criticalhit_x"].contains(&key_stat_str)
@@ -1127,26 +1134,26 @@ fn get_status_effect_buff_type_flags(buff: &SkillBuffData) -> u32 {
             } else if STAT_TYPE_MAP["attack_power_sub_rate_1"] <= stat
                 && stat <= STAT_TYPE_MAP["skill_damage_sub_rate_2"]
                 || STAT_TYPE_MAP["fire_dam_rate"] <= stat
-                    && stat <= STAT_TYPE_MAP["elements_dam_rate"]
+                && stat <= STAT_TYPE_MAP["elements_dam_rate"]
                 || [
-                    "str",
-                    "agi",
-                    "int",
-                    "str_x",
-                    "agi_x",
-                    "int_x",
-                    "char_attack_dam",
-                    "attack_power_rate",
-                    "skill_damage_rate",
-                    "attack_power_rate_x",
-                    "skill_damage_rate_x",
-                    "hit_rate",
-                    "dodge_rate",
-                    "critical_dam_rate",
-                    "awakening_dam_rate",
-                    "attack_power_addend",
-                    "weapon_dam",
-                ]
+                "str",
+                "agi",
+                "int",
+                "str_x",
+                "agi_x",
+                "int_x",
+                "char_attack_dam",
+                "attack_power_rate",
+                "skill_damage_rate",
+                "attack_power_rate_x",
+                "skill_damage_rate_x",
+                "hit_rate",
+                "dodge_rate",
+                "critical_dam_rate",
+                "awakening_dam_rate",
+                "attack_power_addend",
+                "weapon_dam",
+            ]
                 .contains(&key_stat_str)
             {
                 if buff.category == "buff" && option.value >= 0
@@ -1166,7 +1173,7 @@ fn get_status_effect_buff_type_flags(buff: &SkillBuffData) -> u32 {
             "skill_critical_damage",
             "skill_penetration",
         ]
-        .contains(&option_type)
+            .contains(&option_type)
         {
             if buff.category == "buff" && option.value >= 0
                 || buff.category == "debuff" && option.value <= 0
@@ -1195,7 +1202,7 @@ fn get_status_effect_buff_type_flags(buff: &SkillBuffData) -> u32 {
                             "modify_penetration_addend_when_critical",
                             "modify_damage_shield_multiplier",
                         ]
-                        .contains(&action.action_type.as_str())
+                            .contains(&action.action_type.as_str())
                         {
                             buff_type |= StatusEffectBuffTypeFlags::DMG;
                         } else if action.action_type == "modify_critical_ratio" {
@@ -1281,7 +1288,7 @@ fn insert_data(
     raid_clear: bool,
     party_info: Vec<Vec<String>>,
     raid_difficulty: String,
-) {
+) -> i64 {
     let mut encounter_stmt = tx
         .prepare_cached(
             "
@@ -1593,6 +1600,8 @@ fn insert_data(
             ])
             .expect("failed to insert entity");
     }
+
+    last_insert_id
 }
 
 fn generate_intervals(start: i64, end: i64) -> Vec<i64> {

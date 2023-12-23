@@ -22,6 +22,7 @@ export interface Encounter {
     favorite: boolean;
     cleared: boolean;
     bossOnlyDamage: boolean;
+    sync?: number;
 }
 
 export interface EncountersOverview {

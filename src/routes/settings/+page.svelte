@@ -11,6 +11,7 @@
     import ColorSettings from "$lib/components/settings/ColorSettings.svelte";
     import AccessibilitySettings from "$lib/components/settings/AccessibilitySettings.svelte";
     import DatabaseSettings from "$lib/components/settings/DatabaseSettings.svelte";
+    import SyncSettings from "$lib/components/settings/SyncSettings.svelte";
 
     let currentTab = 0;
     let hidden: boolean = true;
@@ -93,10 +94,17 @@
                 Accessibility
             </button>
             <button
-                class="border-b px-3 py-4 {currentTab === 7
+                    class="border-b px-3 py-4 {currentTab === 7
                     ? 'text-accent-500 border-accent-500'
                     : 'border-zinc-500 text-gray-400 hover:text-gray-200'}"
-                on:click={() => (currentTab = 7)}>
+                    on:click={() => (currentTab = 7)}>
+                Sync
+            </button>
+            <button
+                class="border-b px-3 py-4 {currentTab === 8
+                    ? 'text-accent-500 border-accent-500'
+                    : 'border-zinc-500 text-gray-400 hover:text-gray-200'}"
+                on:click={() => (currentTab = 8)}>
                 Database
             </button>
         </div>
@@ -115,6 +123,8 @@
         {:else if currentTab === 6}
             <AccessibilitySettings />
         {:else if currentTab === 7}
+            <SyncSettings />
+        {:else if currentTab === 8}
             <DatabaseSettings />
         {/if}
     </div>

@@ -140,6 +140,15 @@ export const defaultSettings = {
     },
     buffs: {
         default: true,
+    },
+    sync: {
+        enabled: false,
+        accessToken: "",
+        auto: false,
+        minGearScore: "1520",
+        inferno: true,
+        normal: true,
+        excludedCharacters: []
     }
 };
 
