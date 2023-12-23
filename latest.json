@@ -3,8 +3,8 @@
     "pub_date": "2023-12-23T20:37:50+00:00",
     "platforms": {
         "windows-x86_64": {
-            "url": "https://github.com/snoww/loa-logs/releases/download/v1.4.9/LOA.Logs_1.4.9_x64-setup.nsis.zip",
-            "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IDcwNkREOEEwREY0RUZFN0IKUldSNy9rN2ZvTmh0Y0hCa0RSYnlTQUdkWDlpMDlUQUpETTlDWlJlei8vandwTThzK3c3MTBoOC8K"
+            "url": "https://github.com/0fau/loa-logs/releases/download/v1.4.9-sync/LOA.Logs_1.4.9-sync_x64-setup.nsis.zip",
+            "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVTZlRuK1JUV2dxNGczc2x1VndQamFLMnpWbXNieUFCMzlnRVFoRVFkUjdQbW1xZUVHK1B1RklZSHU0Y1gwRDZFaDlMblVKMm9tdkpXWTFjQmVXSGZoRG95NDhBeEVFMFFNPQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzAzMzY2MzY0CWZpbGU6TE9BIExvZ3NfMS40Ljktc3luY194NjQtc2V0dXAubnNpcy56aXAKMWdJa2ZNTE05Vk1tWkIzN2p2cUNFaFdMT1AwRlRKSXJ4NHBFZ043MXhsYlVRZjNCOWpFS2xYVFBOcC9NVmhZOTYwNzI5VWVVeDdSUm54RmhVS2UrQWc9PQo="
         }
     }
 }
