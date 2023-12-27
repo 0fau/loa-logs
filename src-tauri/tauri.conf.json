@@ -8,11 +8,7 @@
   },
   "package": {
     "productName": "LOA Logs",
-<<<<<<< HEAD
-    "version": "1.4.9-sync"
-=======
-    "version": "1.4.10"
->>>>>>> 969acf4bda4e9e57d9b118452c25954962cef448
+    "version": "1.4.10-sync"
   },
   "tauri": {
     "allowlist": {
@@ -104,26 +100,15 @@
       "iconAsTemplate": true
     },
     "security": {
-<<<<<<< HEAD
       "csp": "default-src 'self'; connect-src 'self' https://logs.fau.dev; img-src 'self' data: asset: https://asset.localhost; style-src 'self' 'unsafe-inline'; font-src 'self' data:"
-=======
-      "csp": "default-src 'self'; img-src https: data: asset: https://asset.localhost; style-src 'self' 'unsafe-inline'; font-src 'self' data:"
->>>>>>> 969acf4bda4e9e57d9b118452c25954962cef448
     },
     "updater": {
       "active": true, 
       "endpoints": [
-<<<<<<< HEAD
         "https://raw.githubusercontent.com/0fau/loa-logs/master/latest.json"
       ],
       "dialog": true,
       "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IEUyMkE2ODREOTE3RjRFOUYKUldTZlRuK1JUV2dxNHRDVVJIWnU3MHpHeGpmQ0pDSjZqME0yTk9nYVJCN0VyUnczbS9vMUNFL0QK",
-=======
-        "https://snow.xyz/loa-logs/latest"
-      ],
-      "dialog": false,
-      "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IDZEODU5MzNEODY0ODg0REEKUldUYWhFaUdQWk9GYlczc3VSODJPK01RRTlYUER6NzU0eDE1WDYwcmJsY1d4d2EwblZHNlJ4dW8K",
->>>>>>> 969acf4bda4e9e57d9b118452c25954962cef448
       "windows": {
         "installMode": "passive"
       }

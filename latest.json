@@ -1,11 +1,10 @@
 {
-    "version": "v1.4.10",
-    "notes": "### v1.4.10\n#### NEW FEATURES\n- added new updater popup (will show up when next update is available)\n- hovering skills now show tripod info\nfull patch notes on github\nsend bug reports/suggestions to discord.gg/sbSa3pkDF5",
+    "version": "v1.4.10-sync",
     "pub_date": "2023-12-27T08:55:06.959Z",
     "platforms": {
         "windows-x86_64": {
-            "url": "https://github.com/snoww/loa-logs/releases/download/v1.4.10/LOA.Logs_1.4.10_x64-setup.nsis.zip",
-            "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVUYWhFaUdQWk9GYmE2TFpoSVV6V1JZM1JTUzhiRGhQT1BGUktBaERqS1B3dXhqNnN4eE1oWEszL1FUbHJKSnNMeUgyRmFTSFY3NjVpQURoa0hndmtjencyZkQxbEVnbXc0PQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzAzNjY2OTg0CWZpbGU6TE9BIExvZ3NfMS40LjEwX3g2NC1zZXR1cC5uc2lzLnppcAorRlJQOWNKQmgrc0kxbnRFOUV3T0FKL2ZkZmdLQ1Z3OUFsYUpiN1oybWpGeDVDYXhRYnQwdVRFL3RkbHhHc25ZcHgrVEpEd092RURuTWtRN0c1MEVEdz09Cg=="
+            "url": "https://github.com/0fau/loa-logs/releases/download/v1.4.10-sync/LOA.Logs_1.4.10-sync_x64-setup.nsis.zip",
+            "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVTZlRuK1JUV2dxNGdnZEJFTXVQckVmSmtwaDdkVXRBK1RDS1lRNGFibXNwZHZOUkFNMC8wRFl5RXF5cjJiQ2lOdTFoU3ZQYTBpUGtlK3ZUSkJxN0VPS2wrMnZYM1JwbHdZPQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzAzNzEzOTc4CWZpbGU6TE9BIExvZ3NfMS40LjEwLXN5bmNfeDY0LXNldHVwLm5zaXMuemlwCjU4Wnc5MlI5cXZ1WUtTUnJkVFkyWFhLc0lYNmpqZ0Vtc0xIRXE2cTdsbk1ZTHg0Y2kxYXQyeGJWZlZVNHIzRVczdzlVU1VrMTNiYUhhN3JQV3N3akJBPT0K"
         }
     }
 }
