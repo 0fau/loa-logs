@@ -1,6 +1,6 @@
 {
     "version": "v1.4.10-sync",
-    "pub_date": "2023-12-27T08:55:06.959Z",
+    "pub_date": "2023-12-27T22:06:04+00:00",
     "platforms": {
         "windows-x86_64": {
             "url": "https://github.com/0fau/loa-logs/releases/download/v1.4.10-sync/LOA.Logs_1.4.10-sync_x64-setup.nsis.zip",
