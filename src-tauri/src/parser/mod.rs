@@ -10,7 +10,7 @@ use crate::parser::entity_tracker::{get_current_and_max_hp, EntityTracker};
 use crate::parser::id_tracker::IdTracker;
 use crate::parser::models::{Identity, Stagger, EntityType};
 use crate::parser::party_tracker::PartyTracker;
-use crate::parser::status_tracker::{StatusEffectTargetType, StatusTracker};
+use crate::parser::status_tracker::{get_status_effect_value, StatusEffectTargetType, StatusEffectType, StatusTracker};
 use anyhow::Result;
 use chrono::Utc;
 use hashbrown::HashMap;
@@ -90,12 +90,12 @@ pub fn start(window: Window<Wry>, ip: String, port: u16, raw_socket: bool, setti
         .app_handle()
         .path_resolver()
         .resource_dir()
-        .expect("could not get resource dir");
+        .unwrap();
     local_player_path.push("local_players.json");
 
     if local_player_path.exists() {
-        let local_players_file = std::fs::read_to_string(local_player_path.clone()).expect("could not read local_players.json");
-        local_players = serde_json::from_str(&local_players_file).expect("could not parse local_players.json");
+        let local_players_file = std::fs::read_to_string(local_player_path.clone())?;
+        local_players = serde_json::from_str(&local_players_file).unwrap_or_default();
     }
 
     let emit_details = Arc::new(AtomicBool::new(false));
@@ -214,8 +214,7 @@ pub fn start(window: Window<Wry>, ip: String, port: u16, raw_socket: bool, setti
                                 gauge1: pkt.identity_gauge1,
                                 gauge2: pkt.identity_gauge2,
                                 gauge3: pkt.identity_gauge3,
-                            })
-                            .expect("failed to emit identity-update");
+                            })?;
                     }
                 }
             }
@@ -242,7 +241,7 @@ pub fn start(window: Window<Wry>, ip: String, port: u16, raw_socket: bool, setti
                     info!("local player: {}, {}, {}, eid: {}, id: {}", entity.name, get_class_from_id(&entity.class_id), entity.gear_level, entity.id, entity.character_id);
                     if !local_players.contains_key(&entity.character_id) {
                         local_players.insert(entity.character_id, entity.name.clone());
-                        write_local_players(&local_players, &local_player_path);
+                        write_local_players(&local_players, &local_player_path)?;
                     }
                     state.on_init_pc(entity, hp, max_hp)
                 }
@@ -294,8 +293,7 @@ pub fn start(window: Window<Wry>, ip: String, port: u16, raw_socket: bool, setti
                             .emit("stagger-update", Stagger {
                                 current: pkt.paralyzation_point,
                                 max: pkt.paralyzation_max_point,
-                            })
-                            .expect("failed to emit stagger-update");
+                            })?;
                     }
                 }
             }
@@ -484,8 +482,12 @@ pub fn start(window: Window<Wry>, ip: String, port: u16, raw_socket: bool, setti
             }
             Pkt::StatusEffectAddNotify => {
                 if let Some(pkt) = parse_pkt(&data, PKTStatusEffectAddNotify::new, "PKTStatusEffectAddNotify") {
-                    entity_tracker
-                        .build_and_register_status_effect(&pkt.status_effect_data, pkt.object_id, Utc::now())
+                    let status_effect = entity_tracker
+                        .build_and_register_status_effect(&pkt.status_effect_data, pkt.object_id, Utc::now());
+                    if status_effect.status_effect_type == StatusEffectType::Shield {
+                        let target = entity_tracker.get_source_entity(status_effect.target_id);
+                        state.on_boss_shield(&target, status_effect.value);
+                    }
                 }
             }
             Pkt::StatusEffectDurationNotify => {
@@ -501,11 +503,15 @@ pub fn start(window: Window<Wry>, ip: String, port: u16, raw_socket: bool, setti
             }
             Pkt::StatusEffectRemoveNotify => {
                 if let Some(pkt) = parse_pkt(&data, PKTStatusEffectRemoveNotify::new, "PKTStatusEffectRemoveNotify") {
-                    status_tracker.borrow_mut().remove_status_effects(
+                    if status_tracker.borrow_mut().remove_status_effects(
                         pkt.object_id,
                         pkt.status_effect_ids,
                         StatusEffectTargetType::Local,
-                    );
+                    ) {
+                        if let Some(entity) = entity_tracker.entities.get(&pkt.object_id) {
+                            state.on_boss_shield(entity, 0);
+                        }
+                    }
                 }
             }
             Pkt::TriggerBossBattleStatus => {
@@ -580,14 +586,33 @@ pub fn start(window: Window<Wry>, ip: String, port: u16, raw_socket: bool, setti
                         .remove_local_object(pkt.object_id);
                 }
             }
-            // Pkt::StatusEffectSyncDataNotify => {
-            //     let pkt = PKTStatusEffectSyncDataNotify::new(&data);
-            //     shields
-            // }
-            // Pkt::TroopMemberUpdateMinNotify => {
-            //     let pkt = PKTTroopMemberUpdateMinNotify::new(&data);
-            //     shields
-            // }
+            Pkt::StatusEffectSyncDataNotify => {
+                if let Some(pkt) = parse_pkt(&data, PKTStatusEffectSyncDataNotify::new, "PKTStatusEffectSyncDataNotify") {
+                    if let Some(status_effect) = status_tracker.borrow_mut()
+                        .sync_status_effect(pkt.effect_instance_id, pkt.character_id, pkt.object_id, pkt.value, entity_tracker.local_character_id) {
+                        if status_effect.status_effect_type == StatusEffectType::Shield {
+                            let target = entity_tracker.get_source_entity(status_effect.target_id);
+                            state.on_boss_shield(&target, status_effect.value);
+                        }
+                    }
+                }
+            }
+            Pkt::TroopMemberUpdateMinNotify => {
+                if let Some(pkt) = parse_pkt(&data, PKTTroopMemberUpdateMinNotify::new, "PKTTroopMemberUpdateMinNotify") {
+                    for se in pkt.status_effect_datas.iter() {
+                        if let Some(object_id) = id_tracker.borrow().get_entity_id(pkt.character_id) {
+                            let val = get_status_effect_value(&se.value);
+                            if let Some(status_effect) = status_tracker.borrow_mut()
+                                .sync_status_effect(se.effect_instance_id, pkt.character_id, object_id, val, entity_tracker.local_character_id) {
+                                if status_effect.status_effect_type == StatusEffectType::Shield {
+                                    let target = entity_tracker.get_source_entity(status_effect.target_id);
+                                    state.on_boss_shield(&target, status_effect.value);
+                                }
+                            }
+                        }
+                    }
+                }
+            }
             _ => {}
         }
 
@@ -694,10 +719,11 @@ fn update_party(party_tracker: &Rc<RefCell<PartyTracker>>, entity_tracker: &Enti
     sorted_parties.into_iter().map(|(_, members)| members).collect()
 }
 
-fn write_local_players(local_players: &HashMap<u64, String>, path: &PathBuf) {
+fn write_local_players(local_players: &HashMap<u64, String>, path: &PathBuf) -> Result<()> {
     let ordered: BTreeMap<_,_> = local_players.iter().collect();
-    let local_players_file = serde_json::to_string(&ordered).expect("could not serialize local_players");
-    std::fs::write(path, local_players_file).expect("could not write local_players.json");
+    let local_players_file = serde_json::to_string(&ordered)?;
+    std::fs::write(path, local_players_file)?;
+    Ok(())
 }
 
 fn parse_pkt<T, F>(data: &[u8], new_fn: F, pkt_name: &str) -> Option<T>

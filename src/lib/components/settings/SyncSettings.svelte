@@ -38,8 +38,8 @@
     });
 
     let syncing = false;
-    let synced;
-    let message;
+    let synced = 0;
+    let message = "";
 
     function syncPastLogs() {
         if (!$settings.sync.enabled) {
@@ -67,12 +67,14 @@
             const ids = await invoke("get_sync_candidates", {});
             console.log(ids);
 
-            for (let id of ids) {
+            for (let i = 0; i < ids.length; i++) {
+                let id = ids[i];
                 const encounter = await invoke("load_encounter", {id: id.toString()});
                 let upstream = await uploadLog(id, encounter, $settings.sync, true);
                 if (upstream != 0) {
                     synced++;
                 }
+                message = "Processing logs... (" + i + "/" + ids.length + ")";
             }
             console.log(synced);
             syncing = false;

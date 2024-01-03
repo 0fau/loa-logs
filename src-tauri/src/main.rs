@@ -17,7 +17,7 @@ use flexi_logger::{
     Cleanup, Criterion, DeferredNow, Duplicate, FileSpec, Logger, Naming, WriteMode,
 };
 use hashbrown::HashMap;
-use log::{info, warn, Record};
+use log::{info, warn, Record, error};
 use parser::models::*;
 
 use rusqlite::{params, params_from_iter, Connection};
@@ -166,7 +166,7 @@ async fn main() -> Result<()> {
 
             tokio::task::spawn_blocking(move || {
                 parser::start(meter_window, ip, port, raw_socket, settings).map_err(|e| {
-                    warn!("unexpected error occurred in parser: {}", e);
+                    error!("unexpected error occurred in parser: {}", e);
                 })
             });
 
@@ -701,7 +701,7 @@ fn load_encounters_preview(
                 favorite: row.get(5)?,
                 cleared: row.get(6)?,
                 local_player: row.get(7)?,
-                my_dps: row.get(8).unwrap_or_else(|_| 0),
+                my_dps: row.get(8).unwrap_or(0),
             })
         })
         .expect("could not query encounters");

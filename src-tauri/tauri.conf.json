@@ -8,7 +8,7 @@
   },
   "package": {
     "productName": "LOA Logs",
-    "version": "1.4.10-sync"
+    "version": "1.4.11-sync"
   },
   "tauri": {
     "allowlist": {
@@ -103,7 +103,7 @@
       "csp": "default-src 'self'; connect-src 'self' https://logs.fau.dev; img-src 'self' data: asset: https://asset.localhost; style-src 'self' 'unsafe-inline'; font-src 'self' data:"
     },
     "updater": {
-      "active": true, 
+      "active": true,
       "endpoints": [
         "https://raw.githubusercontent.com/0fau/loa-logs/master/latest.json"
       ],

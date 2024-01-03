@@ -19,7 +19,7 @@
                     aria-label="Close modal"
                     on:click={() => ($updateDismissed = true)}>
                     <span class="sr-only">Close modal</span>
-                    <svg class="h-5 w-5" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg"
+                    <svg class="size-5" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg"
                     >
                         <path
                             fill-rule="evenodd"
@@ -81,6 +81,11 @@
     }
     #notes > :global(ul) {
         @apply py-1;
+        @apply pl-2;
+        @apply list-disc list-inside;
+    }
+    #notes > :global(* > * > ul) {
+        @apply pl-4;
         @apply list-disc list-inside;
     }
     #notes > :global(* > strong) {
