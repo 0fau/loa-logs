@@ -1,10 +1,10 @@
 {
-    "version": "v1.4.13-sync-1",
+    "version": "v1.4.14-sync",
     "pub_date": "2024-01-06T02:16:55+00:00",
     "platforms": {
         "windows-x86_64": {
-            "url": "https://github.com/0fau/loa-logs/releases/download/v1.4.13-sync-1/LOA.Logs_1.4.13-sync-1_x64-setup.nsis.zip",
-            "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVTZlRuK1JUV2dxNG1IOTNvYXBvdTJvU1Ywc2h3K2I0K2k5T1BKU212K2NpcG9iamRjZzZCZlM5a0FPVGhqcEZhN1FXQ09FY1FmSzZTemNnYUk5WWlHNHFGdEJINWEwRWc0PQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzA0NTA3Njk3CWZpbGU6TE9BIExvZ3NfMS40LjEzLXN5bmNfeDY0LXNldHVwLm5zaXMuemlwCkhLWjQraWd4WDZUaUUwaWtoN1ZTUzlKMkhsQkZMbkMxd3BTdUVsZWxpY0xDbUV6T3FiMTY0eFg0azZkemM0dkw3ZHNwQzdZM21hV1puVGxzTmJlUEFBPT0K"
+            "url": "https://github.com/0fau/loa-logs/releases/download/v1.4.14-sync/LOA.Logs_1.4.14-sync_x64-setup.nsis.zip",
+            "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVTZlRuK1JUV2dxNHU5UlhybzQ5eE1tMC9zYTU0NkthbXBzY2hlenMvZythSjhZdGVRV0ZUSHh3UWZDODdkVkJQcWsrcEZHTTlEcXJ5a1Z2RzRGSXBoRVE5K3dxWXBGQlFzPQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzA0NTE0MDczCWZpbGU6TE9BIExvZ3NfMS40LjE0LXN5bmNfeDY0LXNldHVwLm5zaXMuemlwCkJHc25ONmxjazRpY0RaZVVwTFR5RlFwVFByVHY5WE4vaWJSMFUvNXZ1eU1KUTlQVks4akVsTU1lTEt6bkh6ZEFOZ2hsTmc3UU8wUUZaRnNJL2N0SEFBPT0K"
         }
     }
 }
