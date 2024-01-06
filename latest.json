@@ -1,11 +1,11 @@
 {
-    "version": "v1.4.13-sync",
-    "notes": "### v1.4.13\n#### BUG FIXES\n- adjusted hp bar color for shielded bosses (win11)\n- added missing buff icons\n\n### v1.4.11\n#### NEW FEATURES\n- new update popup (wow so cool!)\n- boss hp bar will now show shields if the boss is shielded (added in preparation of hell brel g6 7x mech)\n\n![shield](https://cdn.discordapp.com/attachments/220646943498567680/1191979350157959210/image.png)\n#### BUG FIXES\n- fix local player cache causing crashes\n\n### v1.4.10\n#### NEW FEATURES\n- hovering skills now show tripod info\n\n![hovering skills](https://cdn.discordapp.com/attachments/220646943498567680/1189022385702182921/image.png)\n#### BUG FIXES\n- fix tripods for certain skills not being tracked\n\nfull patch notes on [github](https://github.com/snoww/loa-logs/releases/latest)\n\nsend bug reports/suggestions to [#loa-logs](https://discord.gg/sbSa3pkDF5)",
+    "version": "v1.4.11-sync",
+    "notes": "### v1.4.11\n#### BUG FIXES\n- adjusted hp bar color for shielded bosses (win11)\n- added missing buff icons\n\n### v1.4.11\n#### NEW FEATURES\n- new update popup (wow so cool!)\n- boss hp bar will now show shields if the boss is shielded (added in preparation of hell brel g6 7x mech)\n\n![shield](https://cdn.discordapp.com/attachments/220646943498567680/1191979350157959210/image.png)\n#### BUG FIXES\n- fix local player cache causing crashes\n\n### v1.4.10\n#### NEW FEATURES\n- hovering skills now show tripod info\n\n![hovering skills](https://cdn.discordapp.com/attachments/220646943498567680/1189022385702182921/image.png)\n#### BUG FIXES\n- fix tripods for certain skills not being tracked\n\nfull patch notes on [github](https://github.com/snoww/loa-logs/releases/latest)\n\nsend bug reports/suggestions to [#loa-logs](https://discord.gg/sbSa3pkDF5)",
     "pub_date": "2024-01-06T02:16:55+00:00",
     "platforms": {
         "windows-x86_64": {
-            "url": "https://github.com/0fau/loa-logs/releases/download/v1.4.11-sync/LOA.Logs_1.4.11-sync_x64-setup.nsis.zip",
-            "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVTZlRuK1JUV2dxNG9nWlFqd0pGN1RwbzMvWEdEVHZlN1VIdnVXdXBLaGhEMUh3SEE0MGsxaWdva2tjOUNQLzdkVVJzSGNCd3RwZHZ5U0liTW0xdG1rbEV6M05YZi9ITndRPQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzA0Mjk4NzAyCWZpbGU6TE9BIExvZ3NfMS40LjExLXN5bmNfeDY0LXNldHVwLm5zaXMuemlwCjk4eThXVDdPOEhTSmN0ZDRXSnhXVERDSmtWMUtydnhra0F2MjNUa1FiRDMvV0JkOWpuQjRQVENDcVBOazZDRUhNRjFtbWc3amZmKzFLVjJVTThLOEFnPT0K"
+            "url": "https://github.com/0fau/loa-logs/releases/download/v1.4.13-sync/LOA.Logs_1.4.13-sync_x64-setup.nsis.zip",
+            "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVTZlRuK1JUV2dxNG1IOTNvYXBvdTJvU1Ywc2h3K2I0K2k5T1BKU212K2NpcG9iamRjZzZCZlM5a0FPVGhqcEZhN1FXQ09FY1FmSzZTemNnYUk5WWlHNHFGdEJINWEwRWc0PQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzA0NTA3Njk3CWZpbGU6TE9BIExvZ3NfMS40LjEzLXN5bmNfeDY0LXNldHVwLm5zaXMuemlwCkhLWjQraWd4WDZUaUUwaWtoN1ZTUzlKMkhsQkZMbkMxd3BTdUVsZWxpY0xDbUV6T3FiMTY0eFg0azZkemM0dkw3ZHNwQzdZM21hV1puVGxzTmJlUEFBPT0K"
         }
     }
 }
