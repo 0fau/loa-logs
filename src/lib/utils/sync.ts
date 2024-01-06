@@ -39,7 +39,9 @@ export const bosses = [
     "Sonavel",
     "Hanumatan",
     "Kungelanium",
-    "Deskaluda"
+    "Caliligos",
+    "Deskaluda",
+    "Achates"
 ];
 
 export async function uploadLog(id: string, encounter: Encounter, settings: any, auto = false) {
