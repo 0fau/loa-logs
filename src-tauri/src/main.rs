@@ -903,7 +903,7 @@ fn get_sync_candidates(window: tauri::Window) -> Vec<i32> {
     FROM encounter
     LEFT JOIN sync ON encounter_id = id
     WHERE cleared = true AND upstream_id IS NULL
-        AND difficulty IS NOT NULL ORDER BY fight_start;
+    ORDER BY fight_start;
             "
         )
         .unwrap();

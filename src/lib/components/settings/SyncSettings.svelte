@@ -80,7 +80,7 @@
             syncing = false;
 
             if (synced > 0) {
-                message = "Uploaded " + synced + "logs.";
+                message = "Uploaded " + synced + " logs.";
             } else {
                 message = "No new logs were uploaded.";
             }

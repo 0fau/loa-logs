@@ -8,7 +8,7 @@
   },
   "package": {
     "productName": "LOA Logs",
-    "version": "1.4.11-sync"
+    "version": "1.4.13-sync"
   },
   "tauri": {
     "allowlist": {
@@ -107,7 +107,7 @@
       "endpoints": [
         "https://raw.githubusercontent.com/0fau/loa-logs/master/latest.json"
       ],
-      "dialog": true,
+      "dialog": false,
       "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IEUyMkE2ODREOTE3RjRFOUYKUldTZlRuK1JUV2dxNHRDVVJIWnU3MHpHeGpmQ0pDSjZqME0yTk9nYVJCN0VyUnczbS9vMUNFL0QK",
       "windows": {
         "installMode": "passive"

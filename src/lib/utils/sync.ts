@@ -39,9 +39,7 @@ export const bosses = [
     "Sonavel",
     "Hanumatan",
     "Kungelanium",
-    "Caliligos",
-    "Deskaluda",
-    "Achates"
+    "Deskaluda"
 ];
 
 export async function uploadLog(id: string, encounter: Encounter, settings: any, auto = false) {
@@ -74,12 +72,18 @@ export async function uploadLog(id: string, encounter: Encounter, settings: any,
             headers: {'access_token': settings.accessToken},
             body: JSON.stringify(encounter)
         });
-    if (!resp.ok && resp.status == 500) {
+    if (!resp.ok && (resp.status == 500 || resp.status == 401)) {
+        let error = "";
+        if (resp.status == 500) {
+            error = "server bwonk";
+        } else if (resp.status == 401) {
+            error = "invalid access token";
+        }
+
         await invoke(
             "write_log",
-            {message: "couldn't upload encounter " + id + " (" + encounter.currentBossName + ") - error: server bwonk"}
+            {message: "couldn't upload encounter " + id + " (" + encounter.currentBossName + ") - error: " + error}
         );
-        await invoke("sync", {encounter: Number(id), upstream: 0, failed: true});
         return 0;
     }
     const body = await resp.json();
