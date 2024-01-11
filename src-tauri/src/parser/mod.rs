@@ -469,7 +469,7 @@ pub fn start(window: Window<Wry>, ip: String, port: u16, raw_socket: bool, setti
                             &target_entity,
                             event.damage,
                             pkt.skill_id as i32,
-                            pkt.skill_effect_id as i32,
+                            pkt.skill_effect_id.unwrap_or_default() as i32,
                             event.modifier as i32,
                             event.cur_hp,
                             event.max_hp,
