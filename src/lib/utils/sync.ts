@@ -50,6 +50,10 @@ export async function uploadLog(id: string, encounter: Encounter, settings: any,
     }
 
     if (auto) {
+        if (encounter.difficulty === "Challenge") {
+            return 0;
+        }
+
         if (settings.excludedCharacters.some((v: string) => encounter.entities[v])) {
             return 0;
         }
@@ -58,7 +62,7 @@ export async function uploadLog(id: string, encounter: Encounter, settings: any,
             return 0;
         }
 
-        if (["Normal", "Hard", "Challenge"].includes(encounter.difficulty ?? "") && !settings.normal) {
+        if (["Normal", "Hard"].includes(encounter.difficulty ?? "") && !settings.normal) {
             return 0;
         }
 
