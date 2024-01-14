@@ -54,6 +54,10 @@ export async function uploadLog(id: string, encounter: Encounter, settings: any,
             return 0;
         }
 
+        if (encounter.currentBossName === "Achates" && encounter.difficulty === "Normal") {
+            return 0;
+        }
+
         if (settings.excludedCharacters.some((v: string) => encounter.entities[v])) {
             return 0;
         }
