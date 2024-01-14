@@ -1,5 +1,6 @@
 {
     "version": "v1.5.0-sync",
+    "notes": "### v1.5.1\n#### BUG FIXES\n- fix brel g1 split bosses not tracking\n- fix akkan g2 pre-gate adds counting as bosses\n\nfull patch notes on [github](https://github.com/snoww/loa-logs/releases/latest)\n\nsend bug reports/suggestions to [#loa-logs](https://discord.gg/sbSa3pkDF5)",
     "pub_date": "2024-01-11T01:49:48+00:00",
     "platforms": {
         "windows-x86_64": {
