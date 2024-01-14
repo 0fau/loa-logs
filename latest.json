@@ -1,11 +1,11 @@
 {
-    "version": "v1.5.0-sync",
+    "version": "v1.5.1-sync",
     "notes": "### v1.5.1\n#### BUG FIXES\n- fix brel g1 split bosses not tracking\n- fix akkan g2 pre-gate adds counting as bosses\n\nfull patch notes on [github](https://github.com/snoww/loa-logs/releases/latest)\n\nsend bug reports/suggestions to [#loa-logs](https://discord.gg/sbSa3pkDF5)",
-    "pub_date": "2024-01-11T01:49:48+00:00",
+    "pub_date": "2024-01-14T13:46:54+00:00",
     "platforms": {
         "windows-x86_64": {
-            "url": "https://github.com/0fau/loa-logs/releases/download/v1.5.0-sync/LOA.Logs_1.5.0-sync_x64-setup.nsis.zip",
-            "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVTZlRuK1JUV2dxNHNNQjVZNmE5NTZBMyt6czhWNjJ4Z0ZBby9zbk8raHhFbzRVVVNoTnlZd2dtQk9EaHZUK1l3L0szcGdibjl6ekhHNDVSTGJLTU4vUis3ZDRHSElaclFBPQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzA0OTM3NDY2CWZpbGU6TE9BIExvZ3NfMS41LjAtc3luY194NjQtc2V0dXAubnNpcy56aXAKblZUd2ttZWUvS3hvaFE0SEplNytTbkQ5M25XZlN5VW9SemJkbWQ4aHFRZEYxay9PaEp2QUdBeXczcytFT0h1VnNnaGxTSWFTd094NjVDNGptNGhOQ1E9PQo="
+            "url": "https://github.com/0fau/loa-logs/releases/download/v1.5.1-sync/LOA.Logs_1.5.1-sync_x64-setup.nsis.zip",
+            "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVTZlRuK1JUV2dxNHFrV1B2TVYrdjlKcCtRYmFjd0hZY09LR2FFM2VnNHVDYWN2SkRlVkNLNWFVenIxUkI3djFOZGFQNzliSEV0UCtTY1RNYXFjK2hocFkzYWQ2czJKUWdjPQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzA1MjM5ODU3CWZpbGU6TE9BIExvZ3NfMS41LjEtc3luY194NjQtc2V0dXAubnNpcy56aXAKaXZTZmY5a3FtWkNUOVppVGhXVGlaYzdvbHBDQUhiaER5UU9PN09rdmVlRHZkcHJnT0IvVmNCamZybVJzS2J1TCtEd2MweFdEWVJVQWR3dnRubHh2QWc9PQo="
         }
     }
 }
