@@ -1,11 +1,11 @@
 {
-    "version": "v1.5.1-sync",
+    "version": "v1.5.2-sync",
     "notes": "### v1.5.2\n#### NEW FEATURES\n- added option to hide meter/log on startup (settings > accessibility)\n- added button to optimize database (use this if you delete encounters often)\n#### BUG FIXES\n- fix certain voldis adds counting as bosses\n\nfull patch notes on [github](https://github.com/snoww/loa-logs/releases/latest)\n\nsend bug reports/suggestions to [#loa-logs](https://discord.gg/sbSa3pkDF5)",
-    "pub_date": "2024-01-14T13:46:54+00:00",
+    "pub_date": "2024-01-17T17:27:49+00:00",
     "platforms": {
         "windows-x86_64": {
-            "url": "https://github.com/0fau/loa-logs/releases/download/v1.5.1-sync/LOA.Logs_1.5.1-sync_x64-setup.nsis.zip",
-            "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVTZlRuK1JUV2dxNHFrV1B2TVYrdjlKcCtRYmFjd0hZY09LR2FFM2VnNHVDYWN2SkRlVkNLNWFVenIxUkI3djFOZGFQNzliSEV0UCtTY1RNYXFjK2hocFkzYWQ2czJKUWdjPQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzA1MjM5ODU3CWZpbGU6TE9BIExvZ3NfMS41LjEtc3luY194NjQtc2V0dXAubnNpcy56aXAKaXZTZmY5a3FtWkNUOVppVGhXVGlaYzdvbHBDQUhiaER5UU9PN09rdmVlRHZkcHJnT0IvVmNCamZybVJzS2J1TCtEd2MweFdEWVJVQWR3dnRubHh2QWc9PQo="
+            "url": "https://github.com/0fau/loa-logs/releases/download/v1.5.2-sync/LOA.Logs_1.5.2-sync_x64-setup.nsis.zip",
+            "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVTZlRuK1JUV2dxNHRZOFd0RTZqWEhYNUQrNzRER09kODZhYm52LzBUMy92MDJyc3BqejVLbU9sZmJpa3pMVnB4TWhSWUM0ZzBFcHlkWWNicW9VTUJrQ28vQVZlUzJNakE4PQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzA1NTExOTc2CWZpbGU6TE9BIExvZ3NfMS41LjItc3luY194NjQtc2V0dXAubnNpcy56aXAKZlg5bXVYektXZTlGcnQvQ05WaXNaTnZ5ZjJqdCtuM1kyV29CQ0gxNjNQbEFsYVhEaVZwYk1DVEtKRVRpSzlCaEdEUmFuTndsLzVMVkZyVU1XcWpjRGc9PQo="
         }
     }
 }
