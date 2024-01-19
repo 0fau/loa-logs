@@ -1,6 +1,6 @@
 {
     "version": "v1.5.2-sync",
-    "notes": "### v1.5.2\n#### NEW FEATURES\n- added option to hide meter/log on startup (settings > accessibility)\n- added button to optimize database (use this if you delete encounters often)\n#### BUG FIXES\n- fix certain voldis adds counting as bosses\n\nfull patch notes on [github](https://github.com/snoww/loa-logs/releases/latest)\n\nsend bug reports/suggestions to [#loa-logs](https://discord.gg/sbSa3pkDF5)",
+    "notes": "### v1.5.6\n#### NEW FEATURES\n- added two new accent colors (rose and violet)\n- added support identity column (settings > live meter/logs > support identity %). _note: only works on new logs_\n\n![identity](https://cdn.discordapp.com/attachments/220646943498567680/1197486350916669512/app_BiFRacJpfE.png)\n\n![setting](https://cdn.discordapp.com/attachments/220646943498567680/1197501510972616764/app_bY7IgOVdje.png)\n#### BUG FIXES\n- fix identity settings not saving\n- fix identity column not showing correctly\n\nfull patch notes on [github](https://github.com/snoww/loa-logs/releases/latest)\n\nsend bug reports/suggestions to [#loa-logs](https://discord.gg/sbSa3pkDF5)",
     "pub_date": "2024-01-17T17:27:49+00:00",
     "platforms": {
         "windows-x86_64": {

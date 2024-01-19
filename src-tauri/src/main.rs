@@ -158,6 +158,8 @@ async fn main() -> Result<()> {
                 }
             }
 
+            let hide_logs = settings.as_ref().map(|s| s.general.hide_logs_on_start).unwrap_or(true);
+
             let logs_window =
                 WindowBuilder::new(app, "logs", tauri::WindowUrl::App("/logs".into()))
                     .title("LOA Logs")
@@ -167,13 +169,12 @@ async fn main() -> Result<()> {
                     .expect("failed to create log window");
             logs_window.restore_state(StateFlags::all()).unwrap();
             logs_window.set_decorations(true).unwrap();
-            if let Some(settings) = settings.clone() {
-                if settings.general.hide_logs_on_start {
-                    logs_window.hide().unwrap();
-                }
+            if hide_logs {
+                logs_window.hide().unwrap();
             }
 
-            tokio::task::spawn_blocking(move || {
+
+            task::spawn_blocking(move || {
                 parser::start(meter_window, ip, port, raw_socket, settings).map_err(|e| {
                     error!("unexpected error occurred in parser: {}", e);
                 })

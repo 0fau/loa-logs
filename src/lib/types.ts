@@ -117,6 +117,7 @@ export interface Skill {
     buffedBy: { [key: number]: number };
     debuffedBy: { [key: number]: number };
     buffedBySupport: number;
+    buffedByIdentity: number;
     debuffedBySupport: number;
     casts: number;
     hits: number;
@@ -144,6 +145,7 @@ export interface DamageStats {
     buffedBy: { [key: number]: number };
     debuffedBy: { [key: number]: number };
     buffedBySupport: number;
+    buffedByIdentity: number;
     debuffedBySupport: number;
     backAttackDamage: number;
     frontAttackDamage: number;

@@ -166,6 +166,7 @@
     let anyFrontAtk: boolean = false;
     let anyBackAtk: boolean = false;
     let anySupportBuff: boolean = false;
+    let anySupportIdentity: boolean = false;
     let anySupportBrand: boolean = false;
     let isSolo: boolean = true;
 
@@ -197,6 +198,7 @@
                 anyFrontAtk = players.some((player) => player.skillStats.frontAttacks > 0);
                 anyBackAtk = players.some((player) => player.skillStats.backAttacks > 0);
                 anySupportBuff = players.some((player) => player.damageStats.buffedBySupport > 0);
+                anySupportIdentity = players.some((player) => player.damageStats.buffedByIdentity > 0);
                 anySupportBrand = players.some((player) => player.damageStats.debuffedBySupport > 0);
                 topDamageDealt = encounter.encounterDamageStats.topDamageDealt;
                 playerDamagePercentages = players.map(
@@ -350,48 +352,52 @@
                             on:contextmenu|preventDefault={() => {
                             // console.log("titlebar clicked");
                         }}>
-                    <tr class="bg-zinc-900 tracking-tighter">
-                        <th class="w-7 px-2 font-normal"/>
-                        <th class="w-14 px-2 text-left font-normal"/>
-                        <th class="w-full"/>
-                        {#if anyDead && $settings.meter.deathTime}
-                            <th class="w-14 font-normal" use:tooltip={{ content: "Dead for" }}>Dead</th>
-                        {/if}
-                        {#if $settings.meter.damage}
-                            <th class="w-14 font-normal" use:tooltip={{ content: "Damage Dealt" }}>DMG</th>
-                        {/if}
-                        {#if $settings.meter.dps}
-                            <th class="w-14 font-normal" use:tooltip={{ content: "Damage per second" }}>DPS</th>
-                        {/if}
-                        {#if !isSolo && $settings.meter.damagePercent}
-                            <th class="w-12 font-normal" use:tooltip={{ content: "Damage %" }}>D%</th>
-                        {/if}
-                        {#if $settings.meter.critRate}
-                            <th class="w-12 font-normal" use:tooltip={{ content: "Crit %" }}>CRIT</th>
-                        {/if}
-                        {#if $settings.meter.critDmg}
-                            <th class="w-12 font-normal" use:tooltip={{ content: "% Damage that Crit" }}>CDMG</th>
-                        {/if}
-                        {#if anyFrontAtk && $settings.meter.frontAtk}
-                            <th class="w-12 font-normal" use:tooltip={{ content: "Front Attack %" }}>F.A</th>
-                        {/if}
-                        {#if anyBackAtk && $settings.meter.backAtk}
-                            <th class="w-12 font-normal" use:tooltip={{ content: "Back Attack %" }}>B.A</th>
-                        {/if}
-                        {#if anySupportBuff && $settings.meter.percentBuffBySup}
-                            <th class="w-12 font-normal" use:tooltip={{ content: "% Damage buffed by Support" }}
-                            >Buff%
-                            </th>
-                        {/if}
-                        {#if anySupportBrand && $settings.meter.percentBrand}
-                            <th class="w-12 font-normal" use:tooltip={{ content: "% Damage buffed by Brand" }}
-                            >B%
-                            </th>
-                        {/if}
-                        {#if $settings.meter.counters}
-                            <th class="w-12 font-normal" use:tooltip={{ content: "Counters" }}>CTR</th>
-                        {/if}
-                    </tr>
+                        <tr class="bg-zinc-900 tracking-tighter">
+                            <th class="w-7 px-2 font-normal" />
+                            <th class="w-14 px-2 text-left font-normal" />
+                            <th class="w-full" />
+                            {#if anyDead && $settings.meter.deathTime}
+                                <th class="w-14 font-normal" use:tooltip={{ content: "Dead for" }}>Dead</th>
+                            {/if}
+                            {#if $settings.meter.damage}
+                                <th class="w-14 font-normal" use:tooltip={{ content: "Damage Dealt" }}>DMG</th>
+                            {/if}
+                            {#if $settings.meter.dps}
+                                <th class="w-14 font-normal" use:tooltip={{ content: "Damage per second" }}>DPS</th>
+                            {/if}
+                            {#if !isSolo && $settings.meter.damagePercent}
+                                <th class="w-12 font-normal" use:tooltip={{ content: "Damage %" }}>D%</th>
+                            {/if}
+                            {#if $settings.meter.critRate}
+                                <th class="w-12 font-normal" use:tooltip={{ content: "Crit %" }}>CRIT</th>
+                            {/if}
+                            {#if $settings.meter.critDmg}
+                                <th class="w-12 font-normal" use:tooltip={{ content: "% Damage that Crit" }}>CDMG</th>
+                            {/if}
+                            {#if anyFrontAtk && $settings.meter.frontAtk}
+                                <th class="w-12 font-normal" use:tooltip={{ content: "Front Attack %" }}>F.A</th>
+                            {/if}
+                            {#if anyBackAtk && $settings.meter.backAtk}
+                                <th class="w-12 font-normal" use:tooltip={{ content: "Back Attack %" }}>B.A</th>
+                            {/if}
+                            {#if anySupportBuff && $settings.meter.percentBuffBySup}
+                                <th class="w-12 font-normal" use:tooltip={{ content: "% Damage buffed by Support Atk. Power buff" }}
+                                >Buff%
+                                </th>
+                            {/if}
+                            {#if anySupportIdentity && $settings.meter.percentIdentityBySup}
+                                <th class="w-12 font-normal" use:tooltip={{ content: "% Damage buffed by Support Identity" }}
+                                >Iden%
+                                </th>
+                            {/if}
+                            {#if anySupportBrand && $settings.meter.percentBrand}
+                                <th class="w-12 font-normal" use:tooltip={{ content: "% Damage buffed by Brand" }}
+                                    >B%</th>
+                            {/if}
+                            {#if $settings.meter.counters}
+                                <th class="w-12 font-normal" use:tooltip={{ content: "Counters" }}>CTR</th>
+                            {/if}
+                        </tr>
                     </thead>
                     <tbody>
                     {#each players as entity, i (entity.name)}
@@ -409,6 +415,7 @@
                                     {anyFrontAtk}
                                     {anyBackAtk}
                                     {anySupportBuff}
+                                    {anySupportIdentity}
                                     {anySupportBrand}
                                     {isSolo}/>
                         </tr>
