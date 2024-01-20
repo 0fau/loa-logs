@@ -1,21 +1,21 @@
 <script lang="ts">
-    import {MeterState, MeterTab, type Entity, type Encounter, ChartType, EntityType} from "$lib/types";
-    import {formatTimestampDate, millisToMinutesAndSeconds} from "$lib/utils/numbers";
-    import {invoke} from "@tauri-apps/api/tauri";
+    import { MeterState, MeterTab, type Entity, type Encounter, ChartType, EntityType } from "$lib/types";
+    import { formatTimestampDate, millisToMinutesAndSeconds } from "$lib/utils/numbers";
+    import { invoke } from "@tauri-apps/api/tauri";
     import LogDamageMeterRow from "./LogDamageMeterRow.svelte";
     import LogPlayerBreakdown from "./LogPlayerBreakdown.svelte";
     import LogEncounterInfo from "./LogEncounterInfo.svelte";
     import LogBuffs from "./LogBuffs.svelte";
-    import {page} from "$app/stores";
-    import {chartable, type EChartsOptions} from "$lib/utils/charts";
-    import {colors, settings, skillIcon} from "$lib/utils/settings";
-    import {goto} from "$app/navigation";
+    import { page } from "$app/stores";
+    import { chartable, type EChartsOptions } from "$lib/utils/charts";
+    import { colors, settings, skillIcon } from "$lib/utils/settings";
+    import { goto } from "$app/navigation";
     import html2canvas from "html2canvas";
-    import {screenshotAlert, screenshotError, takingScreenshot, raidGates} from "$lib/utils/stores";
+    import { screenshotAlert, screenshotError, takingScreenshot, raidGates } from "$lib/utils/stores";
     import LogIdentity from "./identity/LogIdentity.svelte";
     import LogStagger from "./stagger/LogStagger.svelte";
-    import {tooltip} from "$lib/utils/tooltip";
-    import {open} from '@tauri-apps/api/shell';
+    import { tooltip } from "$lib/utils/tooltip";
+    import { open } from "@tauri-apps/api/shell";
     import {
         getAverageDpsChart,
         getAveragePlayerSeries,
@@ -31,7 +31,7 @@
     import DamageTaken from "../shared/DamageTaken.svelte";
     import BossTable from "../shared/BossTable.svelte";
     import BossBreakdown from "../shared/BossBreakdown.svelte";
-    import {bosses as acceptedBosses, uploadLog} from "$lib/utils/sync";
+    import { bosses as acceptedBosses, uploadLog } from "$lib/utils/sync";
 
     export let id: string;
     export let encounter: Encounter;
@@ -249,11 +249,11 @@
     }
 
     function scrollToTop() {
-        targetDiv.scrollIntoView({behavior: "smooth", block: "start", inline: "start"});
+        targetDiv.scrollIntoView({ behavior: "smooth", block: "start", inline: "start" });
     }
 
     async function deleteEncounter() {
-        await invoke("delete_encounter", {id: id});
+        await invoke("delete_encounter", { id: id });
         if ($page.url.searchParams.has("page")) {
             let currentPage = parseInt($page.url.searchParams.get("page")!);
             goto(`/logs?page=${currentPage}`);
@@ -309,7 +309,7 @@
             canvas.toBlob(async (blob) => {
                 if (!blob) return;
                 try {
-                    const item = new ClipboardItem({"image/png": blob});
+                    const item = new ClipboardItem({ "image/png": blob });
                     await navigator.clipboard.write([item]);
                     takingScreenshot.set(false);
                     $screenshotAlert = true;
@@ -328,128 +328,133 @@
     }
 </script>
 
-<svelte:window on:contextmenu|preventDefault/>
+<svelte:window on:contextmenu|preventDefault />
 <!-- svelte-ignore a11y-no-static-element-interactions -->
 <div
-        bind:this={targetDiv}
-        class="scroll-ml-8 scroll-mt-2 text-gray-100"
-        class:p-4={$takingScreenshot}
-        on:contextmenu|preventDefault={handleRightClick}>
+    bind:this={targetDiv}
+    class="scroll-ml-8 scroll-mt-2 text-gray-100"
+    class:p-4={$takingScreenshot}
+    on:contextmenu|preventDefault={handleRightClick}>
     <LogEncounterInfo
-            bossName={encounter.currentBossName}
-            difficulty={encounter.difficulty}
-            date={formatTimestampDate(encounter.fightStart, true)}
-            encounterDuration={millisToMinutesAndSeconds(encounter.duration)}
-            {totalDamageDealt}
-            dps={encounter.encounterDamageStats.dps}
-            cleared={encounter.cleared}
-            bossOnlyDamage={encounter.bossOnlyDamage}
-            raidGate={$raidGates.get(encounter.currentBossName)}/>
+        bossName={encounter.currentBossName}
+        difficulty={encounter.difficulty}
+        date={formatTimestampDate(encounter.fightStart, true)}
+        encounterDuration={millisToMinutesAndSeconds(encounter.duration)}
+        {totalDamageDealt}
+        dps={encounter.encounterDamageStats.dps}
+        cleared={encounter.cleared}
+        bossOnlyDamage={encounter.bossOnlyDamage}
+        raidGate={$raidGates.get(encounter.currentBossName)} />
     {#if !$takingScreenshot}
         <div class="mt-2 flex justify-between" style="width: calc(100vw - 4.5rem);">
             <div class="flex divide-x divide-gray-600">
                 <button
-                        class="rounded-sm px-2 py-1"
-                        class:bg-accent-900={tab == MeterTab.DAMAGE}
-                        class:bg-gray-700={tab != MeterTab.DAMAGE}
-                        on:click={damageTab}>
+                    class="rounded-sm px-2 py-1"
+                    class:bg-accent-900={tab === MeterTab.DAMAGE}
+                    class:bg-gray-700={tab !== MeterTab.DAMAGE}
+                    on:click={damageTab}>
                     Damage
                 </button>
                 <button
-                        class="rounded-sm px-2 py-1 flex-shrink-0"
-                        class:bg-accent-900={tab == MeterTab.PARTY_BUFFS}
-                        class:bg-gray-700={tab != MeterTab.PARTY_BUFFS}
-                        on:click={partySynergyTab}>
+                    class="flex-shrink-0 rounded-sm px-2 py-1"
+                    class:bg-accent-900={tab === MeterTab.PARTY_BUFFS}
+                    class:bg-gray-700={tab !== MeterTab.PARTY_BUFFS}
+                    on:click={partySynergyTab}>
                     Party Buffs
                 </button>
                 <button
-                        class="rounded-sm px-2 py-1 flex-shrink-0"
-                        class:bg-accent-900={tab == MeterTab.SELF_BUFFS}
-                        class:bg-gray-700={tab != MeterTab.SELF_BUFFS}
-                        on:click={selfSynergyTab}>
+                    class="flex-shrink-0 rounded-sm px-2 py-1"
+                    class:bg-accent-900={tab === MeterTab.SELF_BUFFS}
+                    class:bg-gray-700={tab !== MeterTab.SELF_BUFFS}
+                    on:click={selfSynergyTab}>
                     Self Buffs
                 </button>
                 {#if $settings.general.showTanked && encounter.encounterDamageStats.totalDamageTaken > 0}
                     <button
-                            class="rounded-sm px-2 py-1"
-                            class:bg-accent-900={tab == MeterTab.TANK}
-                            class:bg-gray-700={tab != MeterTab.TANK}
-                            on:click={tankTab}>
+                        class="rounded-sm px-2 py-1"
+                        class:bg-accent-900={tab === MeterTab.TANK}
+                        class:bg-gray-700={tab !== MeterTab.TANK}
+                        on:click={tankTab}>
                         Tanked
                     </button>
                 {/if}
                 {#if $settings.general.showBosses && bosses.length > 0}
                     <button
-                            class="rounded-sm px-2 py-1"
-                            class:bg-accent-900={tab == MeterTab.BOSS}
-                            class:bg-gray-700={tab != MeterTab.BOSS}
-                            on:click={bossTab}>
+                        class="rounded-sm px-2 py-1"
+                        class:bg-accent-900={tab === MeterTab.BOSS}
+                        class:bg-gray-700={tab !== MeterTab.BOSS}
+                        on:click={bossTab}>
                         Bosses
                     </button>
                 {/if}
                 {#if localPlayer && localPlayer.skillStats.identityStats}
                     <button
-                            class="rounded-sm px-2 py-1"
-                            class:bg-accent-900={tab == MeterTab.IDENTITY}
-                            class:bg-gray-700={tab != MeterTab.IDENTITY}
-                            on:click={identityTab}>
+                        class="rounded-sm px-2 py-1"
+                        class:bg-accent-900={tab === MeterTab.IDENTITY}
+                        class:bg-gray-700={tab !== MeterTab.IDENTITY}
+                        on:click={identityTab}>
                         Identity
                     </button>
                 {/if}
                 {#if encounter.encounterDamageStats.misc && encounter.encounterDamageStats.misc.staggerStats}
                     <button
-                            class="rounded-sm px-2 py-1"
-                            class:bg-accent-900={tab == MeterTab.STAGGER}
-                            class:bg-gray-700={tab != MeterTab.STAGGER}
-                            on:click={staggerTab}>
+                        class="rounded-sm px-2 py-1"
+                        class:bg-accent-900={tab === MeterTab.STAGGER}
+                        class:bg-gray-700={tab !== MeterTab.STAGGER}
+                        on:click={staggerTab}>
                         Stagger
                     </button>
                 {/if}
                 <button
-                        class="rounded-sm bg-gray-700 px-2 py-1"
-                        use:tooltip={{ content: "Take Screenshot" }}
-                        on:click={captureScreenshot}>
+                    class="rounded-sm bg-gray-700 px-2 py-1"
+                    use:tooltip={{ content: "Take Screenshot" }}
+                    on:click={captureScreenshot}>
                     <svg
-                            class="hover:fill-accent-800 h-5 w-5 fill-zinc-300"
-                            xmlns="http://www.w3.org/2000/svg"
-                            viewBox="0 -960 960 960"
-                    >
+                        class="hover:fill-accent-800 h-5 w-5 fill-zinc-300"
+                        xmlns="http://www.w3.org/2000/svg"
+                        viewBox="0 -960 960 960">
                         <path
-                                d="M479.5-269.5q71.75 0 119.625-47.875T647-437q0-71-47.875-118.75T479.5-603.5q-71.75 0-119.125 47.75T313-437q0 71.75 47.375 119.625T479.5-269.5Zm0-57.5q-47 0-78-31.145T370.5-437q0-47 31-78t78-31q47 0 78.5 31t31.5 78.25q0 47.25-31.5 78.5T479.5-327Zm-328 227.5q-38.019 0-64.76-26.741Q60-152.981 60-191v-491.5q0-37.431 26.74-64.966Q113.482-775 151.5-775h132l83.057-97.5H594.5l82 97.5h132q37.431 0 64.966 27.534Q901-719.931 901-682.5V-191q0 38.019-27.534 64.759Q845.931-99.5 808.5-99.5h-657Zm657-91.5v-491.5H635L552.5-780H408.451L325.5-682.5h-174V-191h657ZM480-436.5Z"/>
+                            d="M479.5-269.5q71.75 0 119.625-47.875T647-437q0-71-47.875-118.75T479.5-603.5q-71.75 0-119.125 47.75T313-437q0 71.75 47.375 119.625T479.5-269.5Zm0-57.5q-47 0-78-31.145T370.5-437q0-47 31-78t78-31q47 0 78.5 31t31.5 78.25q0 47.25-31.5 78.5T479.5-327Zm-328 227.5q-38.019 0-64.76-26.741Q60-152.981 60-191v-491.5q0-37.431 26.74-64.966Q113.482-775 151.5-775h132l83.057-97.5H594.5l82 97.5h132q37.431 0 64.966 27.534Q901-719.931 901-682.5V-191q0 38.019-27.534 64.759Q845.931-99.5 808.5-99.5h-657Zm657-91.5v-491.5H635L552.5-780H408.451L325.5-682.5h-174V-191h657ZM480-436.5Z" />
                     </svg>
                 </button>
                 {#if $settings.sync.enabled && acceptedBosses.includes(encounter.currentBossName) && $settings.sync.accessToken !== "" && encounter.cleared}
                     {#if uploading}
-                        <button
-                                class="rounded-sm px-2 py-1 bg-gray-700"
-                                use:tooltip={{content: "Uploading..."}}>
-                            <svg class="w-5 h-5 animate-spin fill-zinc-300 hover:fill-accent-800"
-                                 xmlns="http://www.w3.org/2000/svg"
-                                 viewBox="0 -960 960 960">
-                                <path xmlns="http://www.w3.org/2000/svg"
-                                      d="M160-160v-80h110l-16-14q-52-46-73-105t-21-119q0-111 66.5-197.5T400-790v84q-72 26-116 88.5T240-478q0 45 17 87.5t53 78.5l10 10v-98h80v240H160Zm400-10v-84q72-26 116-88.5T720-482q0-45-17-87.5T650-648l-10-10v98h-80v-240h240v80H690l16 14q49 49 71.5 106.5T800-482q0 111-66.5 197.5T560-170Z"/>
+                        <button class="rounded-sm bg-gray-700 px-2 py-1" use:tooltip={{ content: "Uploading..." }}>
+                            <svg
+                                class="hover:fill-accent-800 h-5 w-5 animate-spin fill-zinc-300"
+                                xmlns="http://www.w3.org/2000/svg"
+                                viewBox="0 -960 960 960">
+                                <path
+                                    xmlns="http://www.w3.org/2000/svg"
+                                    d="M160-160v-80h110l-16-14q-52-46-73-105t-21-119q0-111 66.5-197.5T400-790v84q-72 26-116 88.5T240-478q0 45 17 87.5t53 78.5l10 10v-98h80v240H160Zm400-10v-84q72-26 116-88.5T720-482q0-45-17-87.5T650-648l-10-10v98h-80v-240h240v80H690l16 14q49 49 71.5 106.5T800-482q0 111-66.5 197.5T560-170Z" />
                             </svg>
                         </button>
                     {:else if !encounter.sync}
                         <button
-                                class="rounded-sm px-2 py-1 bg-gray-700"
-                                use:tooltip={{content: "Sync to logs.fau.dev"}}
-                                on:click={upload}>
-                            <svg class="w-5 h-5 fill-zinc-300 hover:fill-accent-800" xmlns="http://www.w3.org/2000/svg"
-                                 viewBox="0 -960 960 960">
-                                <path xmlns="http://www.w3.org/2000/svg"
-                                      d="M450-313v-371L330-564l-43-43 193-193 193 193-43 43-120-120v371h-60ZM220-160q-24 0-42-18t-18-42v-143h60v143h520v-143h60v143q0 24-18 42t-42 18H220Z"/>
+                            class="rounded-sm bg-gray-700 px-2 py-1"
+                            use:tooltip={{ content: "Sync to logs.fau.dev" }}
+                            on:click={upload}>
+                            <svg
+                                class="hover:fill-accent-800 h-5 w-5 fill-zinc-300"
+                                xmlns="http://www.w3.org/2000/svg"
+                                viewBox="0 -960 960 960">
+                                <path
+                                    xmlns="http://www.w3.org/2000/svg"
+                                    d="M450-313v-371L330-564l-43-43 193-193 193 193-43 43-120-120v371h-60ZM220-160q-24 0-42-18t-18-42v-143h60v143h520v-143h60v143q0 24-18 42t-42 18H220Z" />
                             </svg>
                         </button>
                     {:else}
                         <button
-                                class="rounded-sm px-2 py-1 bg-gray-700"
-                                use:tooltip={{content: "Open on logs.fau.dev"}}
-                                on:click={upstream}>
-                            <svg class="w-5 h-5 fill-zinc-300 hover:fill-accent-800" xmlns="http://www.w3.org/2000/svg"
-                                 viewBox="0 -960 960 960">
-                                <path xmlns="http://www.w3.org/2000/svg"
-                                      d="m414-280 226-226-58-58-169 169-84-84-57 57 142 142ZM260-160q-91 0-155.5-63T40-377q0-78 47-139t123-78q25-92 100-149t170-57q117 0 198.5 81.5T760-520q69 8 114.5 59.5T920-340q0 75-52.5 127.5T740-160H260Zm0-80h480q42 0 71-29t29-71q0-42-29-71t-71-29h-60v-80q0-83-58.5-141.5T480-720q-83 0-141.5 58.5T280-520h-20q-58 0-99 41t-41 99q0 58 41 99t99 41Zm220-240Z"/>
+                            class="rounded-sm bg-gray-700 px-2 py-1"
+                            use:tooltip={{ content: "Open on logs.fau.dev" }}
+                            on:click={upstream}>
+                            <svg
+                                class="hover:fill-accent-800 h-5 w-5 fill-zinc-300"
+                                xmlns="http://www.w3.org/2000/svg"
+                                viewBox="0 -960 960 960">
+                                <path
+                                    xmlns="http://www.w3.org/2000/svg"
+                                    d="m414-280 226-226-58-58-169 169-84-84-57 57 142 142ZM260-160q-91 0-155.5-63T40-377q0-78 47-139t123-78q25-92 100-149t170-57q117 0 198.5 81.5T760-520q69 8 114.5 59.5T920-340q0 75-52.5 127.5T740-160H260Zm0-80h480q42 0 71-29t29-71q0-42-29-71t-71-29h-60v-80q0-83-58.5-141.5T480-720q-83 0-141.5 58.5T280-520h-20q-58 0-99 41t-41 99q0 58 41 99t99 41Zm220-240Z" />
                             </svg>
                         </button>
                     {/if}
@@ -457,25 +462,20 @@
                 <div class="relative flex items-center rounded-sm bg-gray-700" on:focusout={handleDropdownFocusLoss}>
                     <button on:click={handleDropdownClick} class="h-full px-2">
                         <svg
-                                class="h-4 w-4"
-                                fill="none"
-                                stroke="currentColor"
-                                viewBox="0 0 24 24"
-                                xmlns="http://www.w3.org/2000/svg"
-                        >
-                            <path
-                                    stroke-linecap="round"
-                                    stroke-linejoin="round"
-                                    stroke-width="2"
-                                    d="M19 9l-7 7-7-7"/>
+                            class="h-4 w-4"
+                            fill="none"
+                            stroke="currentColor"
+                            viewBox="0 0 24 24"
+                            xmlns="http://www.w3.org/2000/svg">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
                         </svg>
                     </button>
                     {#if dropdownOpen}
                         <div class="absolute left-9 top-0 z-50 rounded-md bg-gray-700">
                             <div class="flex w-40 flex-col divide-y-2 divide-gray-600 px-2 py-1">
                                 <button
-                                        class="hover:text-accent-500 p-1 text-left"
-                                        on:click={() => {
+                                    class="hover:text-accent-500 p-1 text-left"
+                                    on:click={() => {
                                         dropdownOpen = false;
                                         captureScreenshot();
                                     }}>
@@ -485,17 +485,17 @@
                                     <span class="text-sm">Show Names</span>
                                     <label class="relative inline-flex cursor-pointer items-center">
                                         <input
-                                                type="checkbox"
-                                                value=""
-                                                class="peer sr-only"
-                                                bind:checked={$settings.general.showNames}/>
+                                            type="checkbox"
+                                            value=""
+                                            class="peer sr-only"
+                                            bind:checked={$settings.general.showNames} />
                                         <div
-                                                class="peer-checked:bg-accent-800 peer h-5 w-9 rounded-full border-gray-600 bg-gray-800 after:absolute after:left-[2px] after:top-[2px] after:h-4 after:w-4 after:rounded-full after:border after:border-gray-300 after:bg-white after:transition-all after:content-[''] peer-checked:after:translate-x-full peer-checked:after:border-white peer-focus:outline-none"/>
+                                            class="peer-checked:bg-accent-800 peer h-5 w-9 rounded-full border-gray-600 bg-gray-800 after:absolute after:left-[2px] after:top-[2px] after:h-4 after:w-4 after:rounded-full after:border after:border-gray-300 after:bg-white after:transition-all after:content-[''] peer-checked:after:translate-x-full peer-checked:after:border-white peer-focus:outline-none" />
                                     </label>
                                 </button>
                                 <button
-                                        class="p-1 text-left hover:text-red-600"
-                                        on:click={() => {
+                                    class="p-1 text-left hover:text-red-600"
+                                    on:click={() => {
                                         dropdownOpen = false;
                                         deleteConfirm = true;
                                     }}>
@@ -508,59 +508,57 @@
             </div>
 
             {#if deleteConfirm}
-                <div class="fixed inset-0 z-50 bg-zinc-900 bg-opacity-80"/>
+                <div class="fixed inset-0 z-50 bg-zinc-900 bg-opacity-80" />
                 <div class="fixed left-0 right-0 top-0 z-50 h-modal w-full items-center justify-center p-4">
                     <div class="relative top-[25%] mx-auto flex max-h-full w-full max-w-md">
                         <div
-                                class="relative mx-auto flex flex-col rounded-lg border-gray-700 bg-zinc-800 text-gray-400 shadow-md">
+                            class="relative mx-auto flex flex-col rounded-lg border-gray-700 bg-zinc-800 text-gray-400 shadow-md">
                             <button
-                                    type="button"
-                                    class="absolute right-2.5 top-3 ml-auto whitespace-normal rounded-lg p-1.5 hover:bg-zinc-600 focus:outline-none"
-                                    aria-label="Close modal"
-                                    on:click={() => (deleteConfirm = false)}>
+                                type="button"
+                                class="absolute right-2.5 top-3 ml-auto whitespace-normal rounded-lg p-1.5 hover:bg-zinc-600 focus:outline-none"
+                                aria-label="Close modal"
+                                on:click={() => (deleteConfirm = false)}>
                                 <span class="sr-only">Close modal</span>
                                 <svg
-                                        class="h-5 w-5"
-                                        fill="currentColor"
-                                        viewBox="0 0 20 20"
-                                        xmlns="http://www.w3.org/2000/svg"
-                                >
+                                    class="h-5 w-5"
+                                    fill="currentColor"
+                                    viewBox="0 0 20 20"
+                                    xmlns="http://www.w3.org/2000/svg">
                                     <path
-                                            fill-rule="evenodd"
-                                            d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z"
-                                            clip-rule="evenodd"/>
+                                        fill-rule="evenodd"
+                                        d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z"
+                                        clip-rule="evenodd" />
                                 </svg>
                             </button>
                             <div id="modal" class="flex-1 space-y-6 overflow-y-auto overscroll-contain p-6">
                                 <div class="text-center">
                                     <svg
-                                            aria-hidden="true"
-                                            class="mx-auto mb-4 h-14 w-14 text-gray-200"
-                                            fill="none"
-                                            stroke="currentColor"
-                                            viewBox="0 0 24 24"
-                                            xmlns="http://www.w3.org/2000/svg"
-                                    >
+                                        aria-hidden="true"
+                                        class="mx-auto mb-4 h-14 w-14 text-gray-200"
+                                        fill="none"
+                                        stroke="currentColor"
+                                        viewBox="0 0 24 24"
+                                        xmlns="http://www.w3.org/2000/svg">
                                         <path
-                                                stroke-linecap="round"
-                                                stroke-linejoin="round"
-                                                stroke-width="2"
-                                                d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
-                                                class="s-Qbr4I8QhaoSZ"/>
+                                            stroke-linecap="round"
+                                            stroke-linejoin="round"
+                                            stroke-width="2"
+                                            d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+                                            class="s-Qbr4I8QhaoSZ" />
                                     </svg>
                                     <h3 class="mb-5 text-lg font-normal text-gray-400">
                                         Are you sure you want to delete this encounter?
                                     </h3>
                                     <button
-                                            type="button"
-                                            class="mr-2 inline-flex items-center justify-center rounded-lg bg-red-700 px-5 py-2.5 text-center text-sm font-medium text-white hover:bg-red-800 focus:outline-none"
-                                            on:click={deleteEncounter}>
+                                        type="button"
+                                        class="mr-2 inline-flex items-center justify-center rounded-lg bg-red-700 px-5 py-2.5 text-center text-sm font-medium text-white hover:bg-red-800 focus:outline-none"
+                                        on:click={deleteEncounter}>
                                         Yes, I'm sure
                                     </button>
                                     <button
-                                            type="button"
-                                            class="inline-flex items-center justify-center rounded-lg bg-gray-800 bg-transparent px-5 py-2.5 text-center text-sm font-medium text-gray-400 hover:bg-zinc-700 hover:text-white focus:text-white focus:outline-none"
-                                            on:click={() => (deleteConfirm = false)}>
+                                        type="button"
+                                        class="inline-flex items-center justify-center rounded-lg bg-gray-800 bg-transparent px-5 py-2.5 text-center text-sm font-medium text-gray-400 hover:bg-zinc-700 hover:text-white focus:text-white focus:outline-none"
+                                        on:click={() => (deleteConfirm = false)}>
                                         No, cancel
                                     </button>
                                 </div>
@@ -572,17 +570,17 @@
         </div>
     {/if}
     {#if tab === MeterTab.IDENTITY && localPlayer !== null}
-        <LogIdentity {localPlayer} duration={encounter.duration}/>
+        <LogIdentity {localPlayer} duration={encounter.duration} />
     {:else if tab === MeterTab.STAGGER && encounter.encounterDamageStats.misc && encounter.encounterDamageStats.misc.staggerStats}
-        <LogStagger staggerStats={encounter.encounterDamageStats.misc.staggerStats}/>
+        <LogStagger staggerStats={encounter.encounterDamageStats.misc.staggerStats} />
     {:else}
         <div class="px relative top-0 overflow-x-auto overflow-y-visible">
             {#if tab === MeterTab.DAMAGE}
                 {#if state === MeterState.PARTY}
                     <table class="relative w-full table-fixed">
                         <thead
-                                class="z-30 h-6"
-                                on:contextmenu|preventDefault={() => {
+                            class="z-30 h-6"
+                            on:contextmenu|preventDefault={() => {
                                 console.log("titlebar clicked");
                             }}>
                             <tr class="bg-zinc-900">
@@ -606,7 +604,8 @@
                                 {/if}
                                 {#if $settings.logs.critDmg}
                                     <th class="w-12 font-normal" use:tooltip={{ content: "% Damage that Crit" }}
-                                        >CDMG</th>
+                                        >CDMG
+                                    </th>
                                 {/if}
                                 {#if anyFrontAtk && $settings.logs.frontAtk}
                                     <th class="w-12 font-normal" use:tooltip={{ content: "Front Attack %" }}>F.A</th>
@@ -616,16 +615,20 @@
                                 {/if}
                                 {#if anySupportBuff && $settings.logs.percentBuffBySup}
                                     <th class="w-12 font-normal" use:tooltip={{ content: "% Damage buffed by Support" }}
-                                        >Buff%</th>
+                                        >Buff%
+                                    </th>
                                 {/if}
                                 {#if anySupportIdentity && $settings.logs.percentIdentityBySup}
-                                    <th class="w-12 font-normal" use:tooltip={{ content: "% Damage buffed by Support Identity" }}
-                                    >Iden%
+                                    <th
+                                        class="w-12 font-normal"
+                                        use:tooltip={{ content: "% Damage buffed by Support Identity" }}
+                                        >Iden%
                                     </th>
                                 {/if}
                                 {#if anySupportBrand && $settings.logs.percentBrand}
                                     <th class="w-12 font-normal" use:tooltip={{ content: "% Damage buffed by Brand" }}
-                                        >B%</th>
+                                        >B%
+                                    </th>
                                 {/if}
                                 {#if $settings.logs.counters}
                                     <th class="w-12 font-normal" use:tooltip={{ content: "Counters" }}>CTR</th>
@@ -633,11 +636,11 @@
                             </tr>
                         </thead>
                         <tbody class="relative z-10">
-                        {#each players as player, i (player.name)}
-                            <tr
+                            {#each players as player, i (player.name)}
+                                <tr
                                     class="h-7 px-2 py-1 {$settings.general.underlineHovered ? 'hover:underline' : ''}"
                                     on:click={() => inspectPlayer(player.name)}>
-                                <LogDamageMeterRow
+                                    <LogDamageMeterRow
                                         entity={player}
                                         percentage={playerDamagePercentages[i]}
                                         {totalDamageDealt}
@@ -648,56 +651,56 @@
                                         {anySupportIdentity}
                                         {anySupportBrand}
                                         end={encounter.lastCombatPacket}
-                                        {isSolo}/>
-                            </tr>
-                        {/each}
+                                        {isSolo} />
+                                </tr>
+                            {/each}
                         </tbody>
                     </table>
                 {:else if state === MeterState.PLAYER && player !== null}
                     <table class="relative w-full table-fixed">
-                        <LogPlayerBreakdown entity={player} duration={encounter.duration} {totalDamageDealt}/>
+                        <LogPlayerBreakdown entity={player} duration={encounter.duration} {totalDamageDealt} />
                     </table>
                     {#if player.class === "Arcanist"}
                         <table class="relative w-full table-fixed">
-                            <ArcanistCardTable {player} duration={encounter.duration}/>
+                            <ArcanistCardTable {player} duration={encounter.duration} />
                         </table>
                     {/if}
                 {/if}
             {:else if tab === MeterTab.PARTY_BUFFS}
                 {#if state === MeterState.PARTY}
-                    <LogBuffs {tab} encounterDamageStats={encounter.encounterDamageStats} {players} {inspectPlayer}/>
+                    <LogBuffs {tab} encounterDamageStats={encounter.encounterDamageStats} {players} {inspectPlayer} />
                 {:else}
                     <LogBuffs
-                            {tab}
-                            encounterDamageStats={encounter.encounterDamageStats}
-                            {players}
-                            focusedPlayer={player}
-                            {inspectPlayer}/>
+                        {tab}
+                        encounterDamageStats={encounter.encounterDamageStats}
+                        {players}
+                        focusedPlayer={player}
+                        {inspectPlayer} />
                 {/if}
             {:else if tab === MeterTab.SELF_BUFFS}
                 {#if state === MeterState.PARTY}
-                    <LogBuffs {tab} encounterDamageStats={encounter.encounterDamageStats} {players} {inspectPlayer}/>
+                    <LogBuffs {tab} encounterDamageStats={encounter.encounterDamageStats} {players} {inspectPlayer} />
                 {:else}
                     <LogBuffs
-                            {tab}
-                            encounterDamageStats={encounter.encounterDamageStats}
-                            {players}
-                            focusedPlayer={player}
-                            {inspectPlayer}/>
+                        {tab}
+                        encounterDamageStats={encounter.encounterDamageStats}
+                        {players}
+                        focusedPlayer={player}
+                        {inspectPlayer} />
                 {/if}
             {:else if tab === MeterTab.TANK}
-                <DamageTaken {players} topDamageTaken={encounter.encounterDamageStats.topDamageTaken} tween={false}/>
+                <DamageTaken {players} topDamageTaken={encounter.encounterDamageStats.topDamageTaken} tween={false} />
             {:else if tab === MeterTab.BOSS}
                 {#if !focusedBoss}
-                    <BossTable {bosses} duration={encounter.duration} {inspectBoss} tween={false}/>
+                    <BossTable {bosses} duration={encounter.duration} {inspectBoss} tween={false} />
                 {:else}
                     <BossBreakdown
-                            boss={encounter.entities[focusedBoss]}
-                            duration={encounter.duration}
-                            handleRightClick={() => {
+                        boss={encounter.entities[focusedBoss]}
+                        duration={encounter.duration}
+                        handleRightClick={() => {
                             focusedBoss = "";
                         }}
-                            tween={false}/>
+                        tween={false} />
                 {/if}
             {/if}
         </div>
@@ -708,7 +711,7 @@
     <div class="mt-4" on:contextmenu|preventDefault={handleRightClick}>
         {#if chartType === ChartType.SKILL_LOG}
             {#if player && player.entityType === EntityType.PLAYER}
-                <OpenerSkills skills={player.skills}/>
+                <OpenerSkills skills={player.skills} />
             {/if}
         {/if}
         {#if player?.entityType !== EntityType.ESTHER}
@@ -716,25 +719,25 @@
             <div class="mt-2 flex divide-x divide-gray-600">
                 {#if playerName === "" && state === MeterState.PARTY}
                     <button
-                            class="rounded-sm px-2 py-1"
-                            class:bg-accent-900={chartType == ChartType.AVERAGE_DPS}
-                            class:bg-gray-700={chartType != ChartType.AVERAGE_DPS}
-                            on:click={() => (chartType = ChartType.AVERAGE_DPS)}>
+                        class="rounded-sm px-2 py-1"
+                        class:bg-accent-900={chartType === ChartType.AVERAGE_DPS}
+                        class:bg-gray-700={chartType !== ChartType.AVERAGE_DPS}
+                        on:click={() => (chartType = ChartType.AVERAGE_DPS)}>
                         Average DPS
                     </button>
                     <button
-                            class="rounded-sm px-2 py-1"
-                            class:bg-accent-900={chartType == ChartType.ROLLING_DPS}
-                            class:bg-gray-700={chartType != ChartType.ROLLING_DPS}
-                            on:click={() => (chartType = ChartType.ROLLING_DPS)}>
+                        class="rounded-sm px-2 py-1"
+                        class:bg-accent-900={chartType === ChartType.ROLLING_DPS}
+                        class:bg-gray-700={chartType !== ChartType.ROLLING_DPS}
+                        on:click={() => (chartType = ChartType.ROLLING_DPS)}>
                         10s DPS Window
                     </button>
                 {:else if playerName !== "" && state === MeterState.PLAYER}
                     <button
-                            class="rounded-sm px-2 py-1"
-                            class:bg-accent-900={chartType == ChartType.SKILL_LOG}
-                            class:bg-gray-700={chartType != ChartType.SKILL_LOG}
-                            on:click={() => (chartType = ChartType.SKILL_LOG)}>
+                        class="rounded-sm px-2 py-1"
+                        class:bg-accent-900={chartType === ChartType.SKILL_LOG}
+                        class:bg-gray-700={chartType !== ChartType.SKILL_LOG}
+                        on:click={() => (chartType = ChartType.SKILL_LOG)}>
                         Skill Casts
                     </button>
                 {/if}
@@ -742,19 +745,19 @@
         {/if}
         {#if chartType === ChartType.AVERAGE_DPS}
             {#if !$settings.general.showNames}
-                <div class="mt-2 h-[300px]" use:chartable={chartOptions} style="width: calc(100vw - 4.5rem);"/>
+                <div class="mt-2 h-[300px]" use:chartable={chartOptions} style="width: calc(100vw - 4.5rem);" />
             {:else}
-                <div class="mt-2 h-[300px]" use:chartable={chartOptions} style="width: calc(100vw - 4.5rem);"/>
+                <div class="mt-2 h-[300px]" use:chartable={chartOptions} style="width: calc(100vw - 4.5rem);" />
             {/if}
         {:else if chartType === ChartType.ROLLING_DPS}
             {#if !$settings.general.showNames}
-                <div class="mt-2 h-[300px]" use:chartable={chartOptions} style="width: calc(100vw - 4.5rem);"/>
+                <div class="mt-2 h-[300px]" use:chartable={chartOptions} style="width: calc(100vw - 4.5rem);" />
             {:else}
-                <div class="mt-2 h-[300px]" use:chartable={chartOptions} style="width: calc(100vw - 4.5rem);"/>
+                <div class="mt-2 h-[300px]" use:chartable={chartOptions} style="width: calc(100vw - 4.5rem);" />
             {/if}
         {:else if chartType === ChartType.SKILL_LOG}
             {#if player && player.entityType === EntityType.PLAYER}
-                <div class="mt-2 h-[400px]" use:chartable={chartOptions} style="width: calc(100vw - 4.5rem);"/>
+                <div class="mt-2 h-[400px]" use:chartable={chartOptions} style="width: calc(100vw - 4.5rem);" />
             {/if}
         {/if}
     </div>

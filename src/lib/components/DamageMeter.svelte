@@ -9,28 +9,28 @@
         type PartyInfo,
         type PartyEvent
     } from "$lib/types";
-    import {millisToMinutesAndSeconds} from "$lib/utils/numbers";
-    import {listen, type UnlistenFn} from "@tauri-apps/api/event";
-    import {onDestroy, onMount} from "svelte";
-    import {flip} from "svelte/animate";
+    import { millisToMinutesAndSeconds } from "$lib/utils/numbers";
+    import { listen, type UnlistenFn } from "@tauri-apps/api/event";
+    import { onDestroy, onMount } from "svelte";
+    import { flip } from "svelte/animate";
     import EncounterInfo from "./EncounterInfo.svelte";
     import BossInfo from "./BossInfo.svelte";
     import DamageMeterPlayerRow from "./DamageMeterRow.svelte";
     import PlayerBreakdown from "./PlayerBreakdown.svelte";
     import Footer from "./Footer.svelte";
     import Buffs from "./Buffs.svelte";
-    import {settings} from "$lib/utils/settings";
-    import {tooltip} from "$lib/utils/tooltip";
-    import {writable} from "svelte/store";
+    import { settings } from "$lib/utils/settings";
+    import { tooltip } from "$lib/utils/tooltip";
+    import { writable } from "svelte/store";
     import Notification from "./shared/Notification.svelte";
-    import {takingScreenshot, screenshotAlert, screenshotError} from "$lib/utils/stores";
+    import { takingScreenshot, screenshotAlert, screenshotError } from "$lib/utils/stores";
     import html2canvas from "html2canvas";
     import Details from "./Details.svelte";
     import DamageTaken from "./shared/DamageTaken.svelte";
     import BossTable from "./shared/BossTable.svelte";
     import BossBreakdown from "./shared/BossBreakdown.svelte";
-    import {invoke} from "@tauri-apps/api/tauri";
-    import {uploadLog} from "$lib/utils/sync";
+    import { invoke } from "@tauri-apps/api/tauri";
+    import { uploadLog } from "$lib/utils/sync";
 
     let time = +Date.now();
     let encounter: Encounter | null = null;
@@ -121,7 +121,7 @@
                 }
 
                 let id = event.payload.toString();
-                const encounter = await invoke("load_encounter", {id});
+                const encounter = await invoke("load_encounter", { id });
                 await uploadLog(id, encounter, $settings.sync, true);
             });
             let adminErrorEvent = await listen("admin", () => {
@@ -275,7 +275,7 @@
     function scrollToTopOfTable() {
         let rows = document.querySelector("#live-meter-table")?.querySelectorAll("tr");
         if (rows && rows.length > 2) {
-            rows[1].scrollIntoView({behavior: "smooth", block: "center"});
+            rows[1].scrollIntoView({ behavior: "smooth", block: "center" });
         }
     }
 
@@ -295,6 +295,7 @@
         anyFrontAtk = false;
         anyBackAtk = false;
         anySupportBuff = false;
+        anySupportIdentity = false;
         anySupportBrand = false;
     }
 
@@ -312,7 +313,7 @@
             canvas.toBlob(async (blob) => {
                 if (!blob) return;
                 try {
-                    const item = new ClipboardItem({"image/png": blob});
+                    const item = new ClipboardItem({ "image/png": blob });
                     await navigator.clipboard.write([item]);
                     takingScreenshot.set(false);
                     $screenshotAlert = true;
@@ -333,82 +334,84 @@
     }
 </script>
 
-<svelte:window on:contextmenu|preventDefault/>
+<svelte:window on:contextmenu|preventDefault />
 <div bind:this={targetDiv}>
-    <EncounterInfo {encounterDuration} {totalDamageDealt} {dps} screenshotFn={captureScreenshot}/>
+    <EncounterInfo {encounterDuration} {totalDamageDealt} {dps} screenshotFn={captureScreenshot} />
     {#if currentBoss !== null && $settings.meter.bossHp}
         <div class="relative top-7">
-            <BossInfo boss={currentBoss}/>
+            <BossInfo boss={currentBoss} />
         </div>
     {/if}
     <div
-            class="relative top-7 scroll-ml-8 scroll-mt-2 overflow-scroll"
-            style="height: calc(100vh - 1.5rem - 1.75rem {currentBoss !== null ? ' - 1.75rem' : ''});">
+        class="relative top-7 scroll-ml-8 scroll-mt-2 overflow-scroll"
+        style="height: calc(100vh - 1.5rem - 1.75rem {currentBoss !== null ? ' - 1.75rem' : ''});">
         {#if tab === MeterTab.DAMAGE}
             {#if state === MeterState.PARTY}
                 <table class="relative w-full table-fixed" id="live-meter-table">
                     <thead
-                            class="sticky top-0 z-40 h-6"
-                            on:contextmenu|preventDefault={() => {
+                        class="sticky top-0 z-40 h-6"
+                        on:contextmenu|preventDefault={() => {
                             // console.log("titlebar clicked");
                         }}>
-                    <tr class="bg-zinc-900 tracking-tighter">
-                        <th class="w-7 px-2 font-normal"/>
-                        <th class="w-14 px-2 text-left font-normal"/>
-                        <th class="w-full"/>
-                        {#if anyDead && $settings.meter.deathTime}
-                            <th class="w-14 font-normal" use:tooltip={{ content: "Dead for" }}>Dead</th>
-                        {/if}
-                        {#if $settings.meter.damage}
-                            <th class="w-14 font-normal" use:tooltip={{ content: "Damage Dealt" }}>DMG</th>
-                        {/if}
-                        {#if $settings.meter.dps}
-                            <th class="w-14 font-normal" use:tooltip={{ content: "Damage per second" }}>DPS</th>
-                        {/if}
-                        {#if !isSolo && $settings.meter.damagePercent}
-                            <th class="w-12 font-normal" use:tooltip={{ content: "Damage %" }}>D%</th>
-                        {/if}
-                        {#if $settings.meter.critRate}
-                            <th class="w-12 font-normal" use:tooltip={{ content: "Crit %" }}>CRIT</th>
-                        {/if}
-                        {#if $settings.meter.critDmg}
-                            <th class="w-12 font-normal" use:tooltip={{ content: "% Damage that Crit" }}>CDMG</th>
-                        {/if}
-                        {#if anyFrontAtk && $settings.meter.frontAtk}
-                            <th class="w-12 font-normal" use:tooltip={{ content: "Front Attack %" }}>F.A</th>
-                        {/if}
-                        {#if anyBackAtk && $settings.meter.backAtk}
-                            <th class="w-12 font-normal" use:tooltip={{ content: "Back Attack %" }}>B.A</th>
-                        {/if}
-                        {#if anySupportBuff && $settings.meter.percentBuffBySup}
-                            <th class="w-12 font-normal"
-                                use:tooltip={{ content: "% Damage buffed by Support Atk. Power buff" }}
-                            >Buff%
-                            </th>
-                        {/if}
-                        {#if anySupportIdentity && $settings.meter.percentIdentityBySup}
-                            <th class="w-12 font-normal"
-                                use:tooltip={{ content: "% Damage buffed by Support Identity" }}
-                            >Iden%
-                            </th>
-                        {/if}
-                        {#if anySupportBrand && $settings.meter.percentBrand}
-                            <th class="w-12 font-normal" use:tooltip={{ content: "% Damage buffed by Brand" }}
-                            >B%
-                            </th>
-                        {/if}
-                        {#if $settings.meter.counters}
-                            <th class="w-12 font-normal" use:tooltip={{ content: "Counters" }}>CTR</th>
-                        {/if}
-                    </tr>
+                        <tr class="bg-zinc-900 tracking-tighter">
+                            <th class="w-7 px-2 font-normal" />
+                            <th class="w-14 px-2 text-left font-normal" />
+                            <th class="w-full" />
+                            {#if anyDead && $settings.meter.deathTime}
+                                <th class="w-14 font-normal" use:tooltip={{ content: "Dead for" }}>Dead</th>
+                            {/if}
+                            {#if $settings.meter.damage}
+                                <th class="w-14 font-normal" use:tooltip={{ content: "Damage Dealt" }}>DMG</th>
+                            {/if}
+                            {#if $settings.meter.dps}
+                                <th class="w-14 font-normal" use:tooltip={{ content: "Damage per second" }}>DPS</th>
+                            {/if}
+                            {#if !isSolo && $settings.meter.damagePercent}
+                                <th class="w-12 font-normal" use:tooltip={{ content: "Damage %" }}>D%</th>
+                            {/if}
+                            {#if $settings.meter.critRate}
+                                <th class="w-12 font-normal" use:tooltip={{ content: "Crit %" }}>CRIT</th>
+                            {/if}
+                            {#if $settings.meter.critDmg}
+                                <th class="w-12 font-normal" use:tooltip={{ content: "% Damage that Crit" }}>CDMG</th>
+                            {/if}
+                            {#if anyFrontAtk && $settings.meter.frontAtk}
+                                <th class="w-12 font-normal" use:tooltip={{ content: "Front Attack %" }}>F.A</th>
+                            {/if}
+                            {#if anyBackAtk && $settings.meter.backAtk}
+                                <th class="w-12 font-normal" use:tooltip={{ content: "Back Attack %" }}>B.A</th>
+                            {/if}
+                            {#if anySupportBuff && $settings.meter.percentBuffBySup}
+                                <th
+                                    class="w-12 font-normal"
+                                    use:tooltip={{ content: "% Damage buffed by Support Atk. Power buff" }}
+                                    >Buff%
+                                </th>
+                            {/if}
+                            {#if anySupportIdentity && $settings.meter.percentIdentityBySup}
+                                <th
+                                    class="w-12 font-normal"
+                                    use:tooltip={{ content: "% Damage buffed by Support Identity" }}
+                                    >Iden%
+                                </th>
+                            {/if}
+                            {#if anySupportBrand && $settings.meter.percentBrand}
+                                <th class="w-12 font-normal" use:tooltip={{ content: "% Damage buffed by Brand" }}
+                                    >B%
+                                </th>
+                            {/if}
+                            {#if $settings.meter.counters}
+                                <th class="w-12 font-normal" use:tooltip={{ content: "Counters" }}>CTR</th>
+                            {/if}
+                        </tr>
                     </thead>
                     <tbody>
-                    {#each players as entity, i (entity.name)}
-                        <tr
+                        {#each players as entity, i (entity.name)}
+                            <tr
                                 class="h-7 px-2 py-1 {$settings.general.underlineHovered ? 'hover:underline' : ''}"
                                 animate:flip={{ duration: 200 }}
                                 on:click={() => inspectPlayer(entity.name)}>
-                            <DamageMeterPlayerRow
+                                <DamageMeterPlayerRow
                                     {entity}
                                     percentage={playerDamagePercentages[i]}
                                     {duration}
@@ -420,115 +423,117 @@
                                     {anySupportBuff}
                                     {anySupportIdentity}
                                     {anySupportBrand}
-                                    {isSolo}/>
-                        </tr>
-                    {/each}
+                                    {isSolo} />
+                            </tr>
+                        {/each}
                     </tbody>
                 </table>
             {:else if state === MeterState.PLAYER && player !== null}
                 <table class="relative w-full table-fixed" id="live-meter-table">
-                    <PlayerBreakdown entity={player} {duration} {handleRightClick}/>
+                    <PlayerBreakdown entity={player} {duration} {handleRightClick} />
                 </table>
             {/if}
         {:else if tab === MeterTab.PARTY_BUFFS}
             {#if state === MeterState.PARTY}
                 <Buffs
-                        {tab}
-                        encounterDamageStats={encounter?.encounterDamageStats}
-                        {players}
-                        {handleRightClick}
-                        {inspectPlayer}
-                        encounterPartyInfo={parties}
-                        localPlayer={encounter?.localPlayer}/>
+                    {tab}
+                    encounterDamageStats={encounter?.encounterDamageStats}
+                    {players}
+                    {handleRightClick}
+                    {inspectPlayer}
+                    encounterPartyInfo={parties}
+                    localPlayer={encounter?.localPlayer} />
             {:else}
                 <Buffs
-                        {tab}
-                        encounterDamageStats={encounter?.encounterDamageStats}
-                        {players}
-                        focusedPlayer={player}
-                        {handleRightClick}
-                        {inspectPlayer}
-                        encounterPartyInfo={parties}
-                        localPlayer={encounter?.localPlayer}/>
+                    {tab}
+                    encounterDamageStats={encounter?.encounterDamageStats}
+                    {players}
+                    focusedPlayer={player}
+                    {handleRightClick}
+                    {inspectPlayer}
+                    encounterPartyInfo={parties}
+                    localPlayer={encounter?.localPlayer} />
             {/if}
         {:else if tab === MeterTab.SELF_BUFFS}
             {#if state === MeterState.PARTY}
                 <Buffs
-                        {tab}
-                        encounterDamageStats={encounter?.encounterDamageStats}
-                        {players}
-                        focusedPlayer={player}
-                        {handleRightClick}
-                        {inspectPlayer}
-                        encounterPartyInfo={parties}
-                        localPlayer={encounter?.localPlayer}/>
+                    {tab}
+                    encounterDamageStats={encounter?.encounterDamageStats}
+                    {players}
+                    focusedPlayer={player}
+                    {handleRightClick}
+                    {inspectPlayer}
+                    encounterPartyInfo={parties}
+                    localPlayer={encounter?.localPlayer} />
             {:else}
                 <Buffs
-                        {tab}
-                        encounterDamageStats={encounter?.encounterDamageStats}
-                        {players}
-                        focusedPlayer={player}
-                        {handleRightClick}
-                        {inspectPlayer}
-                        encounterPartyInfo={parties}
-                        localPlayer={encounter?.localPlayer}/>
+                    {tab}
+                    encounterDamageStats={encounter?.encounterDamageStats}
+                    {players}
+                    focusedPlayer={player}
+                    {handleRightClick}
+                    {inspectPlayer}
+                    encounterPartyInfo={parties}
+                    localPlayer={encounter?.localPlayer} />
             {/if}
         {:else if tab === MeterTab.TANK}
-            <DamageTaken {players} topDamageTaken={encounter?.encounterDamageStats.topDamageTaken}/>
+            <DamageTaken {players} topDamageTaken={encounter?.encounterDamageStats.topDamageTaken} />
         {:else if tab === MeterTab.BOSS}
             {#if !focusedBoss}
-                <BossTable {bosses} {duration} {inspectBoss}/>
+                <BossTable {bosses} {duration} {inspectBoss} />
             {:else}
-                <BossBreakdown boss={encounter?.entities[focusedBoss]} {duration}
-                               handleRightClick={handleBossRightClick}/>
+                <BossBreakdown
+                    boss={encounter?.entities[focusedBoss]}
+                    {duration}
+                    handleRightClick={handleBossRightClick} />
             {/if}
         {:else if tab === MeterTab.DETAILS}
-            <Details/>
+            <Details />
         {/if}
     </div>
     {#if zoneChangeAlert}
-        <Notification bind:showAlert={zoneChangeAlert} text="Changing Zone" width={"11rem"} dismissable={false}/>
+        <Notification bind:showAlert={zoneChangeAlert} text="Changing Zone" width={"11rem"} dismissable={false} />
     {/if}
     {#if resettingAlert}
-        <Notification bind:showAlert={resettingAlert} text="Resetting" width={"9rem"} dismissable={false}/>
+        <Notification bind:showAlert={resettingAlert} text="Resetting" width={"9rem"} dismissable={false} />
     {/if}
     {#if pauseAlert}
-        <Notification bind:showAlert={pauseAlert} text="Paused" width={"8rem"} dismissable={false}/>
+        <Notification bind:showAlert={pauseAlert} text="Paused" width={"8rem"} dismissable={false} />
     {/if}
     {#if saveAlert}
-        <Notification bind:showAlert={saveAlert} text="Saving" width={"8rem"} dismissable={false}/>
+        <Notification bind:showAlert={saveAlert} text="Saving" width={"8rem"} dismissable={false} />
     {/if}
     {#if raidClear}
-        <Notification bind:showAlert={raidClear} text="Phase Clear" width={"9.5rem"} dismissable={false}/>
+        <Notification bind:showAlert={raidClear} text="Phase Clear" width={"9.5rem"} dismissable={false} />
     {/if}
     {#if raidWipe}
-        <Notification bind:showAlert={raidWipe} text="Phase Wipe" width={"9rem"} dismissable={false}/>
+        <Notification bind:showAlert={raidWipe} text="Phase Wipe" width={"9rem"} dismissable={false} />
     {/if}
     {#if bossDeadAlert}
-        <Notification bind:showAlert={bossDeadAlert} text="Boss Dead" width={"10rem"} dismissable={false}/>
+        <Notification bind:showAlert={bossDeadAlert} text="Boss Dead" width={"10rem"} dismissable={false} />
     {/if}
     {#if adminAlert}
         <Notification
-                bind:showAlert={adminAlert}
-                text="Please restart as Admin"
-                width={"16em"}
-                dismissable={false}
-                isError={true}/>
+            bind:showAlert={adminAlert}
+            text="Please restart as Admin"
+            width={"16em"}
+            dismissable={false}
+            isError={true} />
     {/if}
     {#if $screenshotAlert}
         <Notification
-                bind:showAlert={$screenshotError}
-                text={"Screenshot Copied to Clipboard"}
-                width="18rem"
-                dismissable={false}/>
+            bind:showAlert={$screenshotError}
+            text={"Screenshot Copied to Clipboard"}
+            width="18rem"
+            dismissable={false} />
     {/if}
     {#if $screenshotError}
         <Notification
-                bind:showAlert={$screenshotError}
-                text={"Error Taking Screenshot"}
-                width="15rem"
-                isError={true}
-                dismissable={false}/>
+            bind:showAlert={$screenshotError}
+            text={"Error Taking Screenshot"}
+            width="15rem"
+            isError={true}
+            dismissable={false} />
     {/if}
-    <Footer bind:tab/>
+    <Footer bind:tab />
 </div>
