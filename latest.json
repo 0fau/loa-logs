@@ -1,11 +1,11 @@
 {
-    "version": "v1.5.7-sync",
-    "notes": "### v1.5.7\n#### BUG FIXES AND IMPROVEMENTS\n- all self buffs now show under breakdown. \n  - for example, you are able to see percentage of each circulate buff on each skill.\n- update wardancer roar synergy to be self buff instead of party buff\n- fix identity column not resetting\n- crashes are now logged to log file\n\n### v1.5.6\n#### NEW FEATURES\n- added two new accent colors (rose and violet)\n- added support identity column (settings > live meter/logs > support identity %). _note: only works on new logs_\n\n![identity](https://cdn.discordapp.com/attachments/220646943498567680/1197486350916669512/app_BiFRacJpfE.png)\n\n![setting](https://cdn.discordapp.com/attachments/220646943498567680/1197501510972616764/app_bY7IgOVdje.png)\n#### BUG FIXES\n- fix identity settings not saving\n- fix identity column not showing correctly\n\nfull patch notes on [github](https://github.com/snoww/loa-logs/releases/latest)\n\nsend bug reports/suggestions to [#loa-logs](https://discord.gg/sbSa3pkDF5)",
+    "version": "v1.5.9-sync",
+    "notes": "### v1.5.9\n#### NEW FEATURES\n- added option to show rough estimated **time to kill (TTK)** for bosses (settings > live meter)\n- search now supports multiple words. example: player1 player2\n- improved method to save app crash logs to file\n\n#### BUG FIXES\n- fixed optimize database function not working\n\nthanks to [@JonasHri](https://github.com/JonasHri), [@yamiM0NSTER](https://github.com/yamiM0NSTER) for the contributions\n\nfull patch notes on [github](https://github.com/snoww/loa-logs/releases/latest)\n\nsend bug reports/suggestions to [#loa-logs](https://discord.gg/sbSa3pkDF5)",
     "pub_date": "2024-01-20T13:57:24+00:00",
     "platforms": {
         "windows-x86_64": {
-            "url": "https://github.com/0fau/loa-logs/releases/download/v1.5.7-sync/LOA.Logs_1.5.7-sync_x64-setup.nsis.zip",
-            "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVTZlRuK1JUV2dxNHBBU0NVVTJMU1Z6NGo2Z1BOMW5OWWppNFd1R0dRN0hzK1A0TlQ0dG9lUmoxeDI3bEwwRXBWV1ZFek5vb2prRlI2YjZ6ellObTdqa2NoYm9PcS9wVndFPQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzA1NzU5MjQzCWZpbGU6TE9BIExvZ3NfMS41Ljctc3luY194NjQtc2V0dXAubnNpcy56aXAKZHl0eVMzNGFNYVJQazFyRlFiV25qVnBrZGlnVUlHdWtDTTQyU3FKOXB6Yms5S0lNQVBWbDQ5eVFqZ2NsOUwrREJmeGQyclJwcjJ0Y3NvQ0Qzckk3Q2c9PQo="
+            "url": "https://github.com/0fau/loa-logs/releases/download/v1.5.9-sync/LOA.Logs_1.5.9-sync_x64-setup.nsis.zip",
+            "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVTZlRuK1JUV2dxNG5kSi84MVZHSlpacjNQM0RSYkl3MVdPRXVXOWZ0NVEzTWNUMGpodVFOYkJZTlR2ZjhGMWxHd3NYcjkzRlJ1TnBkVGd0Q3BBOWVPOGVBZUc0eWRoTmd3PQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzA2MTE0NzQ3CWZpbGU6TE9BIExvZ3NfMS41Ljktc3luY194NjQtc2V0dXAubnNpcy56aXAKUm1NanJvZ04yRkJPdjlhSG8xOTllNEwxS3c4TTNjeXFJNExIYURibDB1N1VUZFQvNE9aeUtaSm9DM0ViNFZuOEhiM2R6R1dRWHBPVHp0QnRMeWZwQ3c9PQo="
         }
     }
 }
