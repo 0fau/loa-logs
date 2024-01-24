@@ -609,6 +609,7 @@ pub struct MeterTabs {
     pub boss_hp_bar: bool,
     pub split_boss_hp_bar: bool,
     pub abbreviate_header: bool,
+    pub show_time_until_kill: bool,
     pub show_class_colors: bool,
     #[serde(default = "default_true")]
     pub split_party_buffs: bool,
@@ -853,7 +854,6 @@ lazy_static! {
         map
     };
 }
-
 
 fn default_true() -> bool {
     true

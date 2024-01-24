@@ -1,8 +1,9 @@
 #![cfg_attr(
-all(not(debug_assertions), target_os = "windows"),
-windows_subsystem = "windows"
+    all(not(debug_assertions), target_os = "windows"),
+    windows_subsystem = "windows"
 )]
 
+mod app;
 mod parser;
 
 use std::{
@@ -13,11 +14,8 @@ use std::{
 };
 
 use anyhow::Result;
-use flexi_logger::{
-    Cleanup, Criterion, DeferredNow, Duplicate, FileSpec, Logger, Naming, WriteMode,
-};
 use hashbrown::HashMap;
-use log::{error, info, warn, Record};
+use log::{error, info, warn};
 use parser::models::*;
 
 use rusqlite::{params, params_from_iter, Connection};
@@ -31,31 +29,12 @@ use window_vibrancy::{apply_blur, clear_blur};
 
 #[tokio::main]
 async fn main() -> Result<()> {
-    let mut logger = Logger::try_with_str("info, tao=off")?
-        .log_to_file(
-            FileSpec::default()
-                .suppress_timestamp()
-                .basename("loa_logs"),
-        )
-        .use_utc()
-        .write_mode(WriteMode::BufferAndFlush)
-        .append()
-        .format(default_format_with_time)
-        .rotate(
-            Criterion::Size(5_000_000),
-            Naming::Timestamps,
-            Cleanup::KeepLogFiles(2),
-        );
-
-    #[cfg(debug_assertions)]
-    {
-        logger = logger.duplicate_to_stdout(Duplicate::All);
-    }
-
-    logger.start()?;
+    app::init();
 
     std::panic::set_hook(Box::new(|info| {
         error!("Panicked: {:?}", info);
+
+        app::get_logger().unwrap().flush();
     }));
 
     let quit = CustomMenuItem::new("quit".to_string(), "Quit");
@@ -162,7 +141,10 @@ async fn main() -> Result<()> {
                 }
             }
 
-            let hide_logs = settings.as_ref().map(|s| s.general.hide_logs_on_start).unwrap_or(true);
+            let hide_logs = settings
+                .as_ref()
+                .map(|s| s.general.hide_logs_on_start)
+                .unwrap_or(true);
 
             let logs_window =
                 WindowBuilder::new(app, "logs", tauri::WindowUrl::App("/logs".into()))
@@ -176,7 +158,6 @@ async fn main() -> Result<()> {
             if hide_logs {
                 logs_window.hide().unwrap();
             }
-
 
             task::spawn_blocking(move || {
                 parser::start(meter_window, ip, port, raw_socket, settings).map_err(|e| {
@@ -314,6 +295,7 @@ async fn main() -> Result<()> {
             disable_aot,
             set_clickthrough,
             get_sync_candidates,
+            optimize_database,
         ])
         .run(tauri::generate_context!())
         .expect("error while running application");
@@ -363,7 +345,7 @@ fn setup_db(resource_path: PathBuf) -> Result<(), String> {
         buffs TEXT,
         debuffs TEXT,
         misc TEXT,
-        difficulty TEXT
+        difficulty TEXT,
         favorite BOOLEAN NOT NULL DEFAULT 0,
         cleared BOOLEAN,
         version INTEGER NOT NULL DEFAULT {},
@@ -409,7 +391,7 @@ fn setup_db(resource_path: PathBuf) -> Result<(), String> {
             "ALTER TABLE encounter ADD COLUMN favorite BOOLEAN DEFAULT 0",
             [],
         )
-            .expect("failed to add columns");
+        .expect("failed to add columns");
         conn.execute(
             &format!(
                 "ALTER TABLE encounter ADD COLUMN version INTEGER DEFAULT {}",
@@ -417,14 +399,14 @@ fn setup_db(resource_path: PathBuf) -> Result<(), String> {
             ),
             [],
         )
-            .expect("failed to add columns");
+        .expect("failed to add columns");
         conn.execute("ALTER TABLE encounter ADD COLUMN cleared BOOLEAN", [])
             .expect("failed to add columns");
         conn.execute(
             "CREATE INDEX IF NOT EXISTS encounter_favorite_index ON encounter (favorite);",
             [],
         )
-            .expect("failed to add index");
+        .expect("failed to add index");
     }
 
     let mut stmt = conn
@@ -438,7 +420,7 @@ fn setup_db(resource_path: PathBuf) -> Result<(), String> {
             "ALTER TABLE encounter ADD COLUMN boss_only_damage BOOLEAN NOT NULL DEFAULT 0",
             [],
         )
-            .expect("failed to add column");
+        .expect("failed to add column");
     }
 
     match conn.execute_batch(
@@ -495,7 +477,9 @@ fn setup_db(resource_path: PathBuf) -> Result<(), String> {
         failed BOOLEAN NOT NULL,
         FOREIGN KEY (encounter_id) REFERENCES encounter (id) ON DELETE CASCADE
     );
-        ", []) {
+        ",
+        [],
+    ) {
         Ok(_) => (),
         Err(e) => {
             return Err(e.to_string());
@@ -513,8 +497,9 @@ fn setup_db(resource_path: PathBuf) -> Result<(), String> {
                 ALTER TABLE sync ADD COLUMN failed BOOLEAN;
                 UPDATE sync SET failed = false;
                 COMMIT;
-            "
-        ).expect("failed to add boolean column");
+            ",
+        )
+        .expect("failed to add boolean column");
     }
 
     Ok(())
@@ -550,7 +535,7 @@ fn update_db(conn: &Connection) {
     }
 
     let count: i32 = conn
-        .query_row_and_then("SElECT COUNT(*) FROM entity WHERE dps IS NULL", [], |row| {
+        .query_row_and_then("SELECT COUNT(*) FROM entity WHERE dps IS NULL", [], |row| {
             row.get(0)
         })
         .expect("could not get entity count");
@@ -590,12 +575,33 @@ fn load_encounters_preview(
 
     let min_duration = filter.min_duration * 1000;
 
-    let mut params = vec![
-        min_duration.to_string(),
-        search.clone(),
-        search.clone(),
-        search,
-    ];
+    let mut params = vec![min_duration.to_string()];
+
+    let search_words: Vec<&str> = if search.chars().any(|c| !c.is_whitespace()) {
+        search.split_whitespace().collect()
+    } else {
+        vec![""]
+    };
+
+    params.extend(
+        search_words
+            .iter()
+            .flat_map(|word| std::iter::repeat(word.to_string()).take(3)),
+    );
+
+    let word_count = search_words.len();
+
+    let join_clauses = (0..word_count).fold(String::new(), |acc, i| {
+        acc + &format!("JOIN entity ent{} ON e.id = ent{}.encounter_id\n    ", i, i)
+    });
+
+    let input_filter = (0..word_count)
+    .fold(String::new(), |acc, i| {
+        acc + &format!(
+            "AND ((current_boss LIKE '%' || ? || '%') OR (ent{}.class LIKE '%' || ? || '%') OR (ent{}.name LIKE '%' || ? || '%'))\n    ",
+            i, i
+        )
+    });
 
     let boss_filter = if !filter.bosses.is_empty() {
         let placeholders: Vec<String> = filter.bosses.iter().map(|_| "?".to_string()).collect();
@@ -653,7 +659,8 @@ fn load_encounters_preview(
 
     let count_params = params.clone();
 
-    let query = format!("SELECT
+    let query = format!(
+        "SELECT
     e.id,
     e.fight_start,
     e.current_boss,
@@ -663,7 +670,7 @@ fn load_encounters_preview(
     e.cleared,
     e.local_player,
     (
-		SELECT en.dps
+        SELECT en.dps
 		FROM entity en
 		WHERE en.name = e.local_player AND en.encounter_id = e.id
 	) AS my_dps,
@@ -677,13 +684,24 @@ fn load_encounters_preview(
         ) AS ordered_classes
     ) AS classes
     FROM encounter e
-    JOIN entity ent ON e.id = ent.encounter_id
-    WHERE e.duration > ? AND ((current_boss LIKE '%' || ? || '%') OR (ent.class LIKE '%' || ? || '%') OR (ent.name LIKE '%' || ? || '%'))
-        {} {} {} {} {} {}
-    GROUP BY encounter_id
+    {}
+    WHERE e.duration > ? {}
+    {} {} {} {} {} {}
+    GROUP BY ent0.encounter_id
     ORDER BY {} {}
     LIMIT ?
-    OFFSET ?", boss_filter, class_filter, raid_clear_filter, favorite_filter, difficulty_filter, boss_only_damage_filter, sort, order);
+    OFFSET ?",
+        join_clauses,
+        input_filter,
+        boss_filter,
+        class_filter,
+        raid_clear_filter,
+        favorite_filter,
+        difficulty_filter,
+        boss_only_damage_filter,
+        sort,
+        order
+    );
 
     let mut stmt = conn.prepare_cached(&query).unwrap();
 
@@ -725,15 +743,25 @@ fn load_encounters_preview(
         encounters.push(encounter.unwrap());
     }
 
-    let query = format!("
+    let query = format!(
+        "
     SElECT COUNT(*)
-    FROM (SELECT encounter_id
+    FROM (SELECT ent0.encounter_id
         FROM encounter e
-        JOIN entity ent ON e.id = ent.encounter_id
-        WHERE duration > ? AND ((current_boss LIKE '%' || ? || '%') OR (ent.class LIKE '%' || ? || '%') OR (ent.name LIKE '%' || ? || '%'))
-            {} {} {} {} {} {}
-        GROUP BY encounter_id)
-        ", boss_filter, class_filter, raid_clear_filter, favorite_filter, difficulty_filter, boss_only_damage_filter);
+        {}
+        WHERE duration > ? {}
+        {} {} {} {} {} {}
+        GROUP BY ent0.encounter_id)
+        ",
+        join_clauses,
+        input_filter,
+        boss_filter,
+        class_filter,
+        raid_clear_filter,
+        favorite_filter,
+        difficulty_filter,
+        boss_only_damage_filter
+    );
 
     let count: i32 = conn
         .query_row_and_then(&query, params_from_iter(count_params), |row| row.get(0))
@@ -889,7 +917,7 @@ fn load_encounter(window: tauri::Window, id: String) -> Encounter {
     SELECT upstream_id
     FROM sync
     WHERE encounter_id = ? AND failed = false;
-            "
+            ",
         )
         .unwrap();
 
@@ -918,7 +946,7 @@ fn get_sync_candidates(window: tauri::Window) -> Vec<i32> {
     LEFT JOIN sync ON encounter_id = id
     WHERE cleared = true AND upstream_id IS NULL
     ORDER BY fight_start;
-            "
+            ",
         )
         .unwrap();
     let rows = stmt.query_map([], |row| row.get(0)).unwrap();
@@ -1162,14 +1190,14 @@ fn delete_encounters_below_min_duration(
             WHERE duration < ? AND favorite = 0;",
             params![min_duration * 1000],
         )
-            .unwrap();
+        .unwrap();
     } else {
         conn.execute(
             "DELETE FROM encounter
             WHERE duration < ?;",
             params![min_duration * 1000],
         )
-            .unwrap();
+        .unwrap();
     }
     conn.execute("VACUUM;", params![]).unwrap();
 }
@@ -1188,7 +1216,9 @@ fn sync(window: tauri::Window, encounter: i32, upstream: i32, failed: bool) {
         INSERT OR REPLACE INTO sync (encounter_id, upstream_id, failed)
         VALUES(?, ?, ?);
         ",
-        params![encounter, upstream, failed]).unwrap();
+        params![encounter, upstream, failed],
+    )
+    .unwrap();
 }
 
 #[tauri::command]
@@ -1205,14 +1235,14 @@ fn delete_all_uncleared_encounters(window: tauri::Window, keep_favorites: bool) 
             WHERE cleared = 0 AND favorite = 0;",
             [],
         )
-            .unwrap();
+        .unwrap();
     } else {
         conn.execute(
             "DELETE FROM encounter
             WHERE cleared = 0;",
             [],
         )
-            .unwrap();
+        .unwrap();
     }
     conn.execute("VACUUM;", params![]).unwrap();
 }
@@ -1232,7 +1262,7 @@ fn delete_all_encounters(window: tauri::Window, keep_favorites: bool) {
             WHERE favorite = 0;",
             [],
         )
-            .unwrap();
+        .unwrap();
     } else {
         conn.execute("DELETE FROM encounter", []).unwrap();
     }
@@ -1331,19 +1361,4 @@ fn set_clickthrough(window: tauri::Window, set: bool) {
 #[tauri::command]
 fn write_log(message: String) {
     info!("{}", message);
-}
-
-fn default_format_with_time(
-    w: &mut dyn std::io::Write,
-    now: &mut DeferredNow,
-    record: &Record,
-) -> Result<(), std::io::Error> {
-    write!(
-        w,
-        "[{}] {} [{}] {}",
-        now.format("%Y-%m-%dT%H:%M:%S%.6fZ"),
-        record.level(),
-        record.module_path().unwrap_or("<unnamed>"),
-        record.args()
-    )
 }

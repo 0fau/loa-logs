@@ -155,6 +155,7 @@
     let duration = 0;
     let totalDamageDealt = 0;
     let dps = 0;
+    let timeUntilKill = "00:00";
     let currentBoss: Entity | null = null;
     let state = MeterState.PARTY;
     let tab = MeterTab.DAMAGE;
@@ -215,9 +216,27 @@
                 if (duration < 0) {
                     encounterDuration = millisToMinutesAndSeconds(0);
                     dps = 0;
+                    timeUntilKill = "00:00";
                 } else {
                     encounterDuration = millisToMinutesAndSeconds(duration);
                     dps = totalDamageDealt / (duration / 1000);
+                    if ($settings.meter.showTimeUntilKill && encounter.currentBoss) {
+                        let remainingDpm =
+                            players
+                                .filter(
+                                    (e) =>
+                                        e.damageStats.damageDealt > 0 && !e.isDead && e.entityType == EntityType.PLAYER
+                                )
+                                .reduce((a, b) => a + b.damageStats.damageDealt, 0) / duration;
+                        let remainingBossHealth = encounter.currentBoss.currentHp + encounter.currentBoss.currentShield;
+                        let millisUntilKill = Math.max(remainingBossHealth / remainingDpm, 0);
+                        if (millisUntilKill > 3.6e6) {
+                            // 1 hr
+                            timeUntilKill = "∞";
+                        } else {
+                            timeUntilKill = millisToMinutesAndSeconds(millisUntilKill);
+                        }
+                    }
                 }
                 if ($settings.general.showEsther) {
                     totalDamageDealt =
@@ -291,6 +310,7 @@
         encounterDuration = "00:00";
         totalDamageDealt = 0;
         dps = 0;
+        timeUntilKill = "00:00";
         anyDead = false;
         anyFrontAtk = false;
         anyBackAtk = false;
@@ -336,7 +356,7 @@
 
 <svelte:window on:contextmenu|preventDefault />
 <div bind:this={targetDiv}>
-    <EncounterInfo {encounterDuration} {totalDamageDealt} {dps} screenshotFn={captureScreenshot} />
+    <EncounterInfo {encounterDuration} {totalDamageDealt} {dps} {timeUntilKill} screenshotFn={captureScreenshot} />
     {#if currentBoss !== null && $settings.meter.bossHp}
         <div class="relative top-7">
             <BossInfo boss={currentBoss} />
