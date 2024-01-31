@@ -8,7 +8,7 @@
   },
   "package": {
     "productName": "LOA Logs",
-    "version": "1.5.9-sync"
+    "version": "1.5.10-sync"
   },
   "tauri": {
     "allowlist": {
@@ -115,15 +115,30 @@
     },
     "windows": [
       {
+        "label": "main",
+        "title": "LOA Logs",
         "fullscreen": false,
         "width": 500,
         "height": 350,
         "resizable": true,
-        "title": "LOA Logs",
         "decorations": false,
         "transparent": true,
         "minWidth": 400,
-        "minHeight": 180
+        "minHeight": 120,
+        "alwaysOnTop": true,
+        "visible": false
+      },
+      {
+        "label": "logs",
+        "title": "LOA Logs",
+        "url": "logs",
+        "minWidth": 650,
+        "minHeight": 300,
+        "width": 800,
+        "height": 500,
+        "decorations": true,
+        "fileDropEnabled": false,
+        "visible": false
       }
     ]
   }

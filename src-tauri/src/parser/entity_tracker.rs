@@ -2,8 +2,9 @@ use crate::parser::id_tracker::IdTracker;
 use crate::parser::models::EntityType::*;
 use crate::parser::models::{EntityType, Esther, ESTHER_DATA, NPC_DATA, SKILL_DATA};
 use crate::parser::party_tracker::PartyTracker;
+
 use crate::parser::status_tracker::{
-    build_status_effect, StatusEffect, StatusEffectTargetType, StatusTracker,
+    build_status_effect, StatusEffect, StatusEffectTargetType, StatusEffectType, StatusTracker,
 };
 
 use chrono::{DateTime, Utc};
@@ -237,8 +238,12 @@ impl EntityTracker {
         npc
     }
 
-    pub fn party_status_effect_add(&mut self, pkt: PKTPartyStatusEffectAddNotify) {
+    pub fn party_status_effect_add(
+        &mut self,
+        pkt: PKTPartyStatusEffectAddNotify,
+    ) -> Vec<StatusEffect> {
         let timestamp = Utc::now();
+        let mut shields: Vec<StatusEffect> = Vec::new();
         for sed in pkt.status_effect_datas {
             let source_id = if pkt.player_id_on_refresh != 0 {
                 pkt.player_id_on_refresh
@@ -254,18 +259,26 @@ impl EntityTracker {
                 StatusEffectTargetType::Party,
                 timestamp,
             );
+            if status_effect.status_effect_type == StatusEffectType::Shield {
+                shields.push(status_effect.clone());
+            }
             self.status_tracker
                 .borrow_mut()
                 .register_status_effect(status_effect);
         }
+        shields
     }
 
-    pub fn party_status_effect_remove(&mut self, pkt: PKTPartyStatusEffectRemoveNotify) {
+    pub fn party_status_effect_remove(
+        &mut self,
+        pkt: PKTPartyStatusEffectRemoveNotify,
+    ) -> (bool, Vec<StatusEffect>) {
         self.status_tracker.borrow_mut().remove_status_effects(
             pkt.character_id,
             pkt.status_effect_ids,
+            pkt.reason,
             StatusEffectTargetType::Party,
-        );
+        )
     }
 
     pub fn new_projectile(&mut self, pkt: PKTNewProjectile) {
@@ -390,7 +403,7 @@ impl EntityTracker {
             return;
         }
 
-        let class_id = get_skill_class_id(&(skill_id as i32));
+        let class_id = get_skill_class_id(&skill_id);
         if class_id != 0 {
             if entity.entity_type == PLAYER {
                 if entity.class_id == class_id {
@@ -498,7 +511,7 @@ fn get_esther_from_npc_id(npc_id: u32) -> Option<Esther> {
         .cloned()
 }
 
-pub fn get_skill_class_id(skill_id: &i32) -> u32 {
+pub fn get_skill_class_id(skill_id: &u32) -> u32 {
     if let Some(skill) = SKILL_DATA.get(skill_id) {
         skill.class_id
     } else {

@@ -21,11 +21,21 @@ use parser::models::*;
 use rusqlite::{params, params_from_iter, Connection};
 use tauri::{
     api::process::Command, CustomMenuItem, LogicalPosition, LogicalSize, Manager, Position, Size,
-    SystemTray, SystemTrayEvent, SystemTrayMenu, SystemTrayMenuItem, WindowBuilder,
+    SystemTray, SystemTrayEvent, SystemTrayMenu, SystemTrayMenuItem,
 };
 use tauri_plugin_window_state::{AppHandleExt, StateFlags, WindowExt};
 use tokio::task;
 use window_vibrancy::{apply_blur, clear_blur};
+
+const METER_WINDOW_LABEL: &str = "main";
+const LOGS_WINDOW_LABEL: &str = "logs";
+const WINDOW_STATE_FLAGS: StateFlags = StateFlags::from_bits_truncate(
+    StateFlags::DECORATIONS.bits()
+        | StateFlags::FULLSCREEN.bits()
+        | StateFlags::MAXIMIZED.bits()
+        | StateFlags::POSITION.bits()
+        | StateFlags::SIZE.bits(),
+);
 
 #[tokio::main]
 async fn main() -> Result<()> {
@@ -69,17 +79,19 @@ async fn main() -> Result<()> {
 
             let settings = read_settings(&resource_path).ok();
 
-            let meter_window = app.get_window("main").unwrap();
+            let meter_window = app.get_window(METER_WINDOW_LABEL).unwrap();
             meter_window
-                .set_always_on_top(true)
-                .expect("failed to set windows always on top");
-            meter_window
-                .restore_state(StateFlags::all())
+                .restore_state(WINDOW_STATE_FLAGS)
                 .expect("failed to restore window state");
             // #[cfg(debug_assertions)]
             // {
             //     meter_window.open_devtools();
             // }
+
+            let logs_window = app.get_window(LOGS_WINDOW_LABEL).unwrap();
+            logs_window
+                .restore_state(WINDOW_STATE_FLAGS)
+                .expect("failed to restore window state");
 
             let mut raw_socket = false;
             let mut ip: String;
@@ -87,8 +99,14 @@ async fn main() -> Result<()> {
 
             if let Some(settings) = settings.clone() {
                 info!("settings loaded");
-                if settings.general.hide_meter_on_start {
-                    meter_window.hide().unwrap();
+                if !settings.general.hide_meter_on_start {
+                    meter_window.show().unwrap();
+                }
+                if !settings.general.hide_logs_on_start {
+                    logs_window.show().unwrap();
+                }
+                if !settings.general.always_on_top {
+                    meter_window.set_always_on_top(false).unwrap();
                 }
                 if settings.general.auto_iface {
                     ip = meter_core::get_most_common_ip().unwrap();
@@ -132,6 +150,8 @@ async fn main() -> Result<()> {
             } else {
                 ip = meter_core::get_most_common_ip().unwrap();
                 info!("settings not found, auto_iface enabled, using ip: {}", ip);
+                meter_window.show().unwrap();
+                logs_window.show().unwrap();
             }
 
             match setup_db(resource_path) {
@@ -139,24 +159,6 @@ async fn main() -> Result<()> {
                 Err(e) => {
                     warn!("error setting up database: {}", e);
                 }
-            }
-
-            let hide_logs = settings
-                .as_ref()
-                .map(|s| s.general.hide_logs_on_start)
-                .unwrap_or(true);
-
-            let logs_window =
-                WindowBuilder::new(app, "logs", tauri::WindowUrl::App("/logs".into()))
-                    .title("LOA Logs")
-                    .min_inner_size(650.0, 300.0)
-                    .inner_size(800.0, 500.0)
-                    .build()
-                    .expect("failed to create log window");
-            logs_window.restore_state(StateFlags::all()).unwrap();
-            logs_window.set_decorations(true).unwrap();
-            if hide_logs {
-                logs_window.hide().unwrap();
             }
 
             task::spawn_blocking(move || {
@@ -178,14 +180,14 @@ async fn main() -> Result<()> {
             if let tauri::WindowEvent::CloseRequested { api, .. } = event.event() {
                 api.prevent_close();
 
-                if event.window().label() == "main" {
+                if event.window().label() == METER_WINDOW_LABEL {
                     event
                         .window()
                         .app_handle()
-                        .save_window_state(StateFlags::all())
+                        .save_window_state(WINDOW_STATE_FLAGS)
                         .expect("failed to save window state");
                     event.window().app_handle().exit(0);
-                } else if event.window().label() == "logs" {
+                } else if event.window().label() == LOGS_WINDOW_LABEL {
                     event.window().hide().unwrap();
                 }
             }
@@ -197,7 +199,7 @@ async fn main() -> Result<()> {
                 size: _,
                 ..
             } => {
-                if let Some(meter) = app.get_window("main") {
+                if let Some(meter) = app.get_window(METER_WINDOW_LABEL) {
                     meter.show().unwrap();
                     meter.unminimize().unwrap();
                     meter.set_ignore_cursor_events(false).unwrap()
@@ -205,37 +207,37 @@ async fn main() -> Result<()> {
             }
             SystemTrayEvent::MenuItemClick { id, .. } => match id.as_str() {
                 "quit" => {
-                    app.save_window_state(StateFlags::all())
+                    app.save_window_state(WINDOW_STATE_FLAGS)
                         .expect("failed to save window state");
                     app.exit(0);
                 }
                 "hide" => {
-                    if let Some(meter) = app.get_window("main") {
+                    if let Some(meter) = app.get_window(METER_WINDOW_LABEL) {
                         meter.hide().unwrap();
                     }
                 }
                 "show-meter" => {
-                    if let Some(meter) = app.get_window("main") {
+                    if let Some(meter) = app.get_window(METER_WINDOW_LABEL) {
                         meter.show().unwrap();
                         meter.unminimize().unwrap();
                         meter.set_ignore_cursor_events(false).unwrap()
                     }
                 }
                 "load" => {
-                    if let Some(meter) = app.get_window("main") {
-                        meter.restore_state(StateFlags::all()).unwrap();
+                    if let Some(meter) = app.get_window(METER_WINDOW_LABEL) {
+                        meter.restore_state(WINDOW_STATE_FLAGS).unwrap();
                     }
                 }
                 "save" => {
-                    if let Some(meter) = app.get_window("main") {
+                    if let Some(meter) = app.get_window(METER_WINDOW_LABEL) {
                         meter
                             .app_handle()
-                            .save_window_state(StateFlags::all())
+                            .save_window_state(WINDOW_STATE_FLAGS)
                             .unwrap();
                     }
                 }
                 "reset" => {
-                    if let Some(meter) = app.get_window("main") {
+                    if let Some(meter) = app.get_window(METER_WINDOW_LABEL) {
                         meter
                             .set_size(Size::Logical(LogicalSize {
                                 width: 500.0,
@@ -252,15 +254,9 @@ async fn main() -> Result<()> {
                     }
                 }
                 "show-logs" => {
-                    if let Some(logs) = app.get_window("logs") {
+                    if let Some(logs) = app.get_window(LOGS_WINDOW_LABEL) {
                         logs.show().unwrap();
                         logs.unminimize().unwrap();
-                    } else {
-                        WindowBuilder::new(app, "logs", tauri::WindowUrl::App("/logs".into()))
-                            .title("LOA Logs")
-                            .min_inner_size(500.0, 300.0)
-                            .build()
-                            .expect("failed to create log window");
                     }
                 }
                 _ => {}
@@ -344,6 +340,9 @@ fn setup_db(resource_path: PathBuf) -> Result<(), String> {
         dps INTEGER,
         buffs TEXT,
         debuffs TEXT,
+        total_shielding INTEGER DEFAULT 0,
+        total_effective_shielding INTEGER DEFAULT 0,
+        applied_shield_buffs TEXT,
         misc TEXT,
         difficulty TEXT,
         favorite BOOLEAN NOT NULL DEFAULT 0,
@@ -421,6 +420,19 @@ fn setup_db(resource_path: PathBuf) -> Result<(), String> {
             [],
         )
         .expect("failed to add column");
+    }
+
+    let mut stmt = conn
+        .prepare("SELECT COUNT(*) FROM pragma_table_info('encounter') WHERE name='total_shielding'")
+        .unwrap();
+    let column_count: u32 = stmt.query_row([], |row| row.get(0)).unwrap();
+    if column_count == 0 {
+        conn.execute_batch(
+            "ALTER TABLE encounter ADD COLUMN total_shielding INTEGER DEFAULT 0;
+                ALTER TABLE encounter ADD COLUMN total_effective_shielding INTEGER DEFAULT 0;
+                ALTER TABLE encounter ADD COLUMN applied_shield_buffs TEXT;",
+        )
+        .expect("failed to add shield columns");
     }
 
     match conn.execute_batch(
@@ -712,7 +724,7 @@ fn load_encounters_preview(
 
     let encounter_iter = stmt
         .query_map(params_from_iter(params), |row| {
-            let classes = row.get(9).unwrap_or_else(|_| "".to_string());
+            let classes: String = row.get(9).unwrap_or_default();
 
             let (classes, names) = classes
                 .split(',')
@@ -800,7 +812,10 @@ fn load_encounter(window: tauri::Window, id: String) -> Encounter {
        difficulty,
        favorite,
        cleared,
-       boss_only_damage
+       boss_only_damage,
+       total_shielding,
+       total_effective_shielding,
+       applied_shield_buffs
     FROM encounter
     WHERE id = ?
     ;",
@@ -809,18 +824,27 @@ fn load_encounter(window: tauri::Window, id: String) -> Encounter {
 
     let mut encounter = encounter_stmt
         .query_row(params![id], |row| {
-            let buff_str = row.get(10).unwrap_or_else(|_| "".to_string());
-            let buffs = serde_json::from_str::<HashMap<i32, StatusEffect>>(buff_str.as_str())
+            let buff_str: String = row.get(10).unwrap_or_default();
+            let buffs = serde_json::from_str::<HashMap<u32, StatusEffect>>(buff_str.as_str())
                 .unwrap_or_else(|_| HashMap::new());
 
-            let debuff_str = row.get(11).unwrap_or_else(|_| "".to_string());
-            let debuffs = serde_json::from_str::<HashMap<i32, StatusEffect>>(debuff_str.as_str())
+            let debuff_str: String = row.get(11).unwrap_or_default();
+            let debuffs = serde_json::from_str::<HashMap<u32, StatusEffect>>(debuff_str.as_str())
                 .unwrap_or_else(|_| HashMap::new());
 
-            let misc_str = row.get(12).unwrap_or_else(|_| "".to_string());
+            let misc_str: String = row.get(12).unwrap_or_default();
             let misc = serde_json::from_str::<EncounterMisc>(misc_str.as_str())
                 .map(Some)
                 .unwrap_or_else(|_| None);
+
+            let total_shielding = row.get(17).unwrap_or_default();
+            let total_effective_shielding = row.get(18).unwrap_or_default();
+
+            let applied_shield_buff_str: String = row.get(19).unwrap_or_default();
+            let applied_shield_buffs = serde_json::from_str::<HashMap<u32, StatusEffect>>(
+                applied_shield_buff_str.as_str(),
+            )
+            .unwrap_or_default();
 
             Ok(Encounter {
                 last_combat_packet: row.get(0)?,
@@ -837,6 +861,9 @@ fn load_encounter(window: tauri::Window, id: String) -> Encounter {
                     buffs,
                     debuffs,
                     misc,
+                    total_shielding,
+                    total_effective_shielding,
+                    applied_shield_buffs,
                     ..Default::default()
                 },
                 difficulty: row.get(13)?,
@@ -872,20 +899,19 @@ fn load_encounter(window: tauri::Window, id: String) -> Encounter {
 
     let entity_iter = entity_stmt
         .query_map(params![id], |row| {
-            let skill_str = row.get(7).unwrap_or_else(|_| "".to_string());
-            let skills = serde_json::from_str::<HashMap<i32, Skill>>(skill_str.as_str())
-                .unwrap_or_else(|_| HashMap::new());
+            let skill_str: String = row.get(7).unwrap_or_default();
+            let skills =
+                serde_json::from_str::<HashMap<u32, Skill>>(skill_str.as_str()).unwrap_or_default();
 
-            let damage_stats_str = row.get(8).unwrap_or_else(|_| "".to_string());
+            let damage_stats_str: String = row.get(8).unwrap_or_default();
+            let damage_stats =
+                serde_json::from_str::<DamageStats>(damage_stats_str.as_str()).unwrap_or_default();
 
-            let damage_stats = serde_json::from_str::<DamageStats>(damage_stats_str.as_str())
-                .unwrap_or_else(|_| DamageStats::default());
+            let skill_stats_str: String = row.get(9).unwrap_or_default();
+            let skill_stats =
+                serde_json::from_str::<SkillStats>(skill_stats_str.as_str()).unwrap_or_default();
 
-            let skill_stats_str = row.get(9).unwrap_or_else(|_| "".to_string());
-            let skill_stats = serde_json::from_str::<SkillStats>(skill_stats_str.as_str())
-                .unwrap_or_else(|_| SkillStats::default());
-
-            let entity_type = row.get(11).unwrap_or_else(|_| "".to_string());
+            let entity_type: String = row.get(11).unwrap_or_default();
 
             Ok(EncounterEntity {
                 name: row.get(0)?,
@@ -996,7 +1022,7 @@ fn open_most_recent_encounter(window: tauri::Window) {
 
     let id_result: Result<i32, rusqlite::Error> = stmt.query_row(params![], |row| row.get(0));
 
-    if let Some(logs) = window.app_handle().get_window("logs") {
+    if let Some(logs) = window.app_handle().get_window(LOGS_WINDOW_LABEL) {
         match id_result {
             Ok(id) => {
                 logs.emit("show-latest-encounter", id.to_string()).unwrap();
@@ -1078,7 +1104,7 @@ fn delete_encounters(window: tauri::Window, ids: Vec<i32>) {
 
 #[tauri::command]
 fn toggle_meter_window(window: tauri::Window) {
-    if let Some(meter) = window.app_handle().get_window("main") {
+    if let Some(meter) = window.app_handle().get_window(METER_WINDOW_LABEL) {
         if meter.is_visible().unwrap() {
             meter.hide().unwrap();
         } else {
@@ -1089,7 +1115,7 @@ fn toggle_meter_window(window: tauri::Window) {
 
 #[tauri::command]
 fn toggle_logs_window(window: tauri::Window) {
-    if let Some(logs) = window.app_handle().get_window("logs") {
+    if let Some(logs) = window.app_handle().get_window(LOGS_WINDOW_LABEL) {
         if logs.is_visible().unwrap() {
             logs.hide().unwrap();
         } else {
@@ -1101,7 +1127,7 @@ fn toggle_logs_window(window: tauri::Window) {
 
 #[tauri::command]
 fn open_url(window: tauri::Window, url: String) {
-    if let Some(logs) = window.app_handle().get_window("logs") {
+    if let Some(logs) = window.app_handle().get_window(LOGS_WINDOW_LABEL) {
         logs.emit("redirect-url", url).unwrap();
     }
 }
@@ -1325,35 +1351,35 @@ fn optimize_database(window: tauri::Window) {
 
 #[tauri::command]
 fn disable_blur(window: tauri::Window) {
-    if let Some(meter_window) = window.app_handle().get_window("main") {
+    if let Some(meter_window) = window.app_handle().get_window(METER_WINDOW_LABEL) {
         clear_blur(&meter_window).ok();
     }
 }
 
 #[tauri::command]
 fn enable_blur(window: tauri::Window) {
-    if let Some(meter_window) = window.app_handle().get_window("main") {
+    if let Some(meter_window) = window.app_handle().get_window(METER_WINDOW_LABEL) {
         apply_blur(&meter_window, Some((10, 10, 10, 50))).ok();
     }
 }
 
 #[tauri::command]
 fn enable_aot(window: tauri::Window) {
-    if let Some(meter_window) = window.app_handle().get_window("main") {
+    if let Some(meter_window) = window.app_handle().get_window(METER_WINDOW_LABEL) {
         meter_window.set_always_on_top(true).ok();
     }
 }
 
 #[tauri::command]
 fn disable_aot(window: tauri::Window) {
-    if let Some(meter_window) = window.app_handle().get_window("main") {
+    if let Some(meter_window) = window.app_handle().get_window(METER_WINDOW_LABEL) {
         meter_window.set_always_on_top(false).ok();
     }
 }
 
 #[tauri::command]
 fn set_clickthrough(window: tauri::Window, set: bool) {
-    if let Some(meter_window) = window.app_handle().get_window("main") {
+    if let Some(meter_window) = window.app_handle().get_window(METER_WINDOW_LABEL) {
         meter_window.set_ignore_cursor_events(set).unwrap();
     }
 }

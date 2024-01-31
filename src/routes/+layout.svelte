@@ -7,10 +7,9 @@
     import NProgress from "nprogress";
     import "nprogress/nprogress.css";
     import { goto, invalidateAll } from "$app/navigation";
-    import { settings } from "$lib/utils/settings";
+    import { settings, updateSettings } from "$lib/utils/settings";
     import { appWindow } from "@tauri-apps/api/window";
     import { checkUpdate } from "@tauri-apps/api/updater";
-    import { updateAvailable, updateManifest } from "$lib/utils/stores";
     import { invoke } from "@tauri-apps/api";
     import UpdateAvailable from "$lib/components/shared/UpdateAvailable.svelte";
 
@@ -32,6 +31,10 @@
         if (location.pathname !== "/") {
             (async () => {
                 await checkForUpdate();
+
+                if ($updateSettings.available) {
+                    await showWindow();
+                }
 
                 let encounterUpdateEvent = await listen("show-latest-encounter", async (event) => {
                     await goto("/logs/encounter?id=" + event.payload);
@@ -69,8 +72,12 @@
         try {
             const { shouldUpdate, manifest } = await checkUpdate();
             if (shouldUpdate) {
-                $updateAvailable = true;
-                $updateManifest = manifest;
+                $updateSettings.available = true;
+                const oldManifest = $updateSettings.manifest;
+                $updateSettings.manifest = manifest;
+                if (oldManifest?.version !== $updateSettings.manifest?.version) {
+                    $updateSettings.dismissed = false;
+                }
             }
         } catch (e) {
             await invoke("write_log", { message: e });

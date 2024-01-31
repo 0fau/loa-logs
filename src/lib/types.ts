@@ -54,6 +54,9 @@ export interface EncounterDamageStats {
     mostDamageTakenEntity: MostDamageTakenEntity;
     buffs: { [key: number]: StatusEffect };
     debuffs: { [key: number]: StatusEffect };
+    totalShielding: number;
+    totalEffectiveShielding: number;
+    appliedShieldBuffs: { [key: number]: StatusEffect };
     misc?: EncounterMisc;
 }
 
@@ -150,11 +153,20 @@ export interface DamageStats {
     backAttackDamage: number;
     frontAttackDamage: number;
     critDamage: number;
+    shieldsGiven: number;
+    shieldsReceived: number;
+    damageAbsorbed: number;
+    damageAbsorbedOnOthers: number;
+    shieldsGivenBy: { [key: number]: number };
+    shieldsReceivedBy: { [key: number]: number };
+    damageAbsorbedBy: { [key: number]: number };
+    damageAbsorbedOnOthersBy: { [key: number]: number };
     deaths: number;
     deathTime: number;
     dps: number;
     dpsAverage: [number, number];
     dpsRolling10sAvg: [number, number];
+    [key: string]: any;
 }
 
 export interface SkillStats {
@@ -257,7 +269,8 @@ export enum MeterTab {
     IDENTITY,
     STAGGER,
     DETAILS,
-    BOSS
+    BOSS,
+    SHIELDS
 }
 
 export enum ChartType {
@@ -267,6 +280,14 @@ export enum ChartType {
     IDENTITY,
     STAGGER
 }
+
+export enum ShieldTab {
+    GIVEN,
+    RECEIVED,
+    E_GIVEN,
+    E_RECEIVED
+}
+
 
 export interface ClassMap {
     [key: number]: string;
@@ -309,6 +330,30 @@ export class Buff {
         this.icon = icon;
         this.sourceIcon = sourceIcon;
         this.percentage = percentage;
+    }
+}
+
+export class ShieldDetails {
+    total: number;
+    buffs: Array<Shield>;
+    id: string;
+
+    constructor() {
+        this.total = 0;
+        this.buffs = [];
+        this.id = "";
+    }
+}
+
+export class Shield {
+    id: number;
+    icon: string;
+    value: number;
+
+    constructor(id: number, icon: string, value: number) {
+        this.id = id;
+        this.icon = icon;
+        this.value = value;
     }
 }
 

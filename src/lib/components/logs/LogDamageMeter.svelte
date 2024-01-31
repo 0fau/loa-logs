@@ -32,6 +32,7 @@
     import BossTable from "../shared/BossTable.svelte";
     import BossBreakdown from "../shared/BossBreakdown.svelte";
     import { bosses as acceptedBosses, uploadLog } from "$lib/utils/sync";
+    import LogShields from "$lib/components/logs/LogShields.svelte";
 
     export let id: string;
     export let encounter: Encounter;
@@ -177,6 +178,14 @@
                         encounter.lastCombatPacket,
                         encounter.fightStart
                     );
+                } else if (chartType === ChartType.SKILL_LOG && focusedBoss) {
+                    let boss = bosses.find((boss) => boss.name === focusedBoss);
+                    chartOptions = getSkillLogChart(
+                        boss!,
+                        $skillIcon.path,
+                        encounter.lastCombatPacket,
+                        encounter.fightStart
+                    );
                 }
             }
         }
@@ -189,6 +198,8 @@
     }
 
     function inspectBoss(name: string) {
+        state = MeterState.PLAYER;
+        chartType = ChartType.SKILL_LOG;
         focusedBoss = name;
     }
 
@@ -210,6 +221,12 @@
     function tankTab() {
         handleRightClick();
         tab = MeterTab.TANK;
+        setChartView();
+    }
+
+    function shieldTab() {
+        handleRightClick();
+        tab = MeterTab.SHIELDS;
         setChartView();
     }
 
@@ -369,6 +386,15 @@
                     on:click={selfSynergyTab}>
                     Self Buffs
                 </button>
+                {#if $settings.general.showShields && encounter.encounterDamageStats.totalShielding > 0}
+                    <button
+                        class="rounded-sm px-2 py-1"
+                        class:bg-accent-900={tab === MeterTab.SHIELDS}
+                        class:bg-gray-700={tab !== MeterTab.SHIELDS}
+                        on:click={shieldTab}>
+                        Shields
+                    </button>
+                {/if}
                 {#if $settings.general.showTanked && encounter.encounterDamageStats.totalDamageTaken > 0}
                     <button
                         class="rounded-sm px-2 py-1"
@@ -690,6 +716,8 @@
                 {/if}
             {:else if tab === MeterTab.TANK}
                 <DamageTaken {players} topDamageTaken={encounter.encounterDamageStats.topDamageTaken} tween={false} />
+            {:else if tab === MeterTab.SHIELDS}
+                <LogShields {players} encounterDamageStats={encounter.encounterDamageStats} />
             {:else if tab === MeterTab.BOSS}
                 {#if !focusedBoss}
                     <BossTable {bosses} duration={encounter.duration} {inspectBoss} tween={false} />
@@ -756,7 +784,7 @@
                 <div class="mt-2 h-[300px]" use:chartable={chartOptions} style="width: calc(100vw - 4.5rem);" />
             {/if}
         {:else if chartType === ChartType.SKILL_LOG}
-            {#if player && player.entityType === EntityType.PLAYER}
+            {#if (player && player.entityType === EntityType.PLAYER) || focusedBoss}
                 <div class="mt-2 h-[400px]" use:chartable={chartOptions} style="width: calc(100vw - 4.5rem);" />
             {/if}
         {/if}

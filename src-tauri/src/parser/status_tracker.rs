@@ -76,26 +76,31 @@ impl StatusTracker {
         &mut self,
         target_id: u64,
         instance_id: Vec<u32>,
+        reason: u8,
         sett: StatusEffectTargetType,
-    ) -> bool {
+    ) -> (bool, Vec<StatusEffect>) {
         let registry = match sett {
             StatusEffectTargetType::Local => &mut self.local_status_effect_registry,
             StatusEffectTargetType::Party => &mut self.party_status_effect_registry,
         };
 
         let mut has_shield_buff = false;
+        let mut shields_broken: Vec<StatusEffect> = Vec::new();
 
         if let Some(ser) = registry.get_mut(&target_id) {
             for id in instance_id {
                 if let Some(se) = ser.remove(&id) {
                     if se.status_effect_type == StatusEffectType::Shield {
                         has_shield_buff = true;
+                        if reason == 4 {
+                            shields_broken.push(se);
+                        }
                     }
                 }
             }
         }
 
-        has_shield_buff
+        (has_shield_buff, shields_broken)
     }
 
     pub fn update_status_duration(
@@ -137,7 +142,7 @@ impl StatusTracker {
         object_id: u64,
         value: u64,
         local_character_id: u64,
-    ) -> Option<StatusEffect> {
+    ) -> (Option<StatusEffect>, u64) {
         let use_party = self.should_use_party_status_effect(character_id, local_character_id);
         let (target_id, sett) = if use_party {
             (character_id, StatusEffectTargetType::Party)
@@ -145,7 +150,7 @@ impl StatusTracker {
             (object_id, StatusEffectTargetType::Local)
         };
         if target_id == 0 {
-            return None;
+            return (None, 0);
         }
         let registry = match sett {
             StatusEffectTargetType::Local => &mut self.local_status_effect_registry,
@@ -154,17 +159,18 @@ impl StatusTracker {
 
         let ser = match registry.get_mut(&target_id) {
             Some(ser) => ser,
-            None => return None,
+            None => return (None, 0),
         };
 
         let se = match ser.get_mut(&instance_id) {
             Some(se) => se,
-            None => return None,
+            None => return (None, 0),
         };
 
+        let old_value = se.value;
         se.value = value;
 
-        Some(se.clone())
+        (Some(se.clone()), old_value)
     }
 
     pub fn get_status_effects(
@@ -347,7 +353,7 @@ pub fn build_status_effect(
     let mut show_type = StatusEffectShowType::Other;
     let mut status_effect_type = StatusEffectType::Other;
     let mut name = "Unknown".to_string();
-    if let Some(effect) = SKILL_BUFF_DATA.get(&(se_data.status_effect_id as i32)) {
+    if let Some(effect) = SKILL_BUFF_DATA.get(&se_data.status_effect_id) {
         name = effect.name.to_string();
         if effect.category.as_str() == "debuff" {
             status_effect_category = Debuff
@@ -448,18 +454,18 @@ pub enum StatusEffectType {
 #[derive(Debug, Default, Clone)]
 pub struct StatusEffect {
     pub instance_id: u32,
-    status_effect_id: u32,
+    pub status_effect_id: u32,
     pub target_id: u64,
-    source_id: u64,
+    pub source_id: u64,
     pub target_type: StatusEffectTargetType,
     pub value: u64,
-    category: StatusEffectCategory,
-    buff_category: StatusEffectBuffCategory,
-    show_type: StatusEffectShowType,
+    pub category: StatusEffectCategory,
+    pub buff_category: StatusEffectBuffCategory,
+    pub show_type: StatusEffectShowType,
     pub status_effect_type: StatusEffectType,
     pub expiration_delay: f32,
     pub expire_at: Option<DateTime<Utc>>,
     pub end_tick: u64,
-    timestamp: DateTime<Utc>,
+    pub timestamp: DateTime<Utc>,
     pub name: String,
 }
