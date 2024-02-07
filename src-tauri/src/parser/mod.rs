@@ -730,7 +730,6 @@ pub fn start(
                     if !state.raid_difficulty.is_empty() {
                         continue;
                     }
-
                     match pkt.zone_level {
                         0 => {
                             state.raid_difficulty = "Normal".to_string();
@@ -746,6 +745,9 @@ pub fn start(
                         }
                         4 => {
                             state.raid_difficulty = "Special".to_string();
+                        }
+                        5 => {
+                            state.raid_difficulty = "Extreme".to_string();
                         }
                         _ => {}
                     }
@@ -778,7 +780,7 @@ pub fn start(
                         );
                     if let Some(status_effect) = status_effect {
                         if status_effect.status_effect_type == StatusEffectType::Shield {
-                            let change = old_value - status_effect.value;
+                            let change = old_value.checked_sub(status_effect.value).unwrap_or_default();
                             on_shield_change(
                                 &mut entity_tracker,
                                 &id_tracker,

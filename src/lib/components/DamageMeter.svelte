@@ -405,8 +405,12 @@
                                 <th
                                     class="w-12 font-normal"
                                     use:tooltip={{ content: "% Damage buffed by Support Atk. Power buff" }}
-                                    >Buff%
+                                >Buff%
                                 </th>
+                            {/if}
+                            {#if anySupportBrand && $settings.meter.percentBrand}
+                                <th class="w-12 font-normal" use:tooltip={{ content: "% Damage buffed by Brand" }}
+                                >B%</th>
                             {/if}
                             {#if anySupportIdentity && $settings.meter.percentIdentityBySup}
                                 <th
