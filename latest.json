@@ -1,11 +1,11 @@
 {
-    "version": "v1.5.10-sync",
-    "notes": "### v1.5.10\n#### NEW FEATURES\n- added new log statistics for shields (settings > general > shields tab)\n\n![image](https://github.com/snoww/loa-logs/assets/33789437/3ffe3f4f-12d9-4bae-8ede-5619b633bc73)\n\n- improved start minimized option\n- improved search, no longer updates on each keystroke\n- normalized support buffs to always be in same order\n  - **brand** > **atk. buff** > **identity**\n\n![image](https://github.com/snoww/loa-logs/assets/33789437/d2b4b99a-93e7-4d01-9f31-fa723a2610d9)\n\n- logs window will show up when new update is available regardless of setting\n- added update notification to live meter\n- added boss move log chart\n\n#### BUG FIXES AND IMPROVEMENTS\n- fixed rare case where receiving a malformed packet would crash meter\n- removed brel g6 7x meteors counting as boss\n- reduced minimum height of meter window\n\nthanks to [@yamiM0NSTER](https://github.com/yamiM0NSTER) for the contributions\n\nfull patch notes on [github](https://github.com/snoww/loa-logs/releases/latest)\n\nsend bug reports/suggestions to [#loa-logs](https://discord.gg/sbSa3pkDF5)",
-    "pub_date": "2024-01-31T15:02:05+00:00",
+    "version": "v1.6.0-sync",
+    "notes": "### v1.6.0\n#### NEW FEATURES\n- update meter for extreme valtan patch\n\n#### BUG FIXES AND IMPROVEMENTS\n- fix meter location not saving on exit\n- fix meter window being stuck tiny after minimizing in some cases\n\nthanks to [@yamiM0NSTER](https://github.com/yamiM0NSTER) for the contributions\n\nfull patch notes on [github](https://github.com/snoww/loa-logs/releases/latest)\n\nsend bug reports/suggestions to [#loa-logs](https://discord.gg/sbSa3pkDF5)",
+    "pub_date": "2024-02-07T23:02:15+00:00",
     "platforms": {
         "windows-x86_64": {
-            "url": "https://github.com/0fau/loa-logs/releases/download/v1.5.10-sync/LOA.Logs_1.5.10-sync_x64-setup.nsis.zip",
-            "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVTZlRuK1JUV2dxNHRwSTNGTGlFMTF4V1JPUjVrcllWMTU5UFhiS1d6eHRGSEhRLzQ0WktqYnFDUkxJREtuZ0RFUDBYczZKbTEvT1VpNjU0N1VOcFB1NlJXTFRUZlpTNkFRPQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzA2NzEzMTMyCWZpbGU6TE9BIExvZ3NfMS41LjEwLXN5bmNfeDY0LXNldHVwLm5zaXMuemlwCnFrcUNIdEdLWGFPNkVueWQ5V2RCUUxMRFhOTlNraTlzWGdkb0dHTnF2K1FvdHpNSS95dEtPRzYza28zVklqK1Fkd3VDdmdTcHB6bi9sMzV0UkxUZEJ3PT0K"
+            "url": "https://github.com/0fau/loa-logs/releases/download/v1.6.0-sync/LOA.Logs_1.6.0-sync_x64-setup.nsis.zip",
+            "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVTZlRuK1JUV2dxNGdoOFZIL3lvTnJHV2xnRXhoVTdwZVQvUHA0MmdtVG8yYlV4eVNPQUhZZDRmdGhFdjg1NFVyeWNUMjhsWnllTUs3SThDMjlmMFlZeXp5TldEVFZ2N2dZPQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzA3MzQ2ODQ1CWZpbGU6TE9BIExvZ3NfMS42LjAtc3luY194NjQtc2V0dXAubnNpcy56aXAKRlhwTS8vUGxaQUVqbitCd3dCWGpYei8xcFpJU2pDSzJNcWNac1BvWmc1NjVNaEViUW9DNldETWNTWHUzODJFY1Y4YVIwNlllNUhEa08vQlJQdUNJQmc9PQo="
         }
     }
 }
