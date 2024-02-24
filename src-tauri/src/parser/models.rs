@@ -568,6 +568,7 @@ pub struct SyncSettings {
     pub min_gear_score: String,
     pub normal: bool,
     pub inferno: bool,
+    pub unclassified: bool,
     pub excluded_characters: Vec<String>,
 }
 

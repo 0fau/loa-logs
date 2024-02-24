@@ -307,7 +307,7 @@
         }
 
         uploading = true;
-        encounter.sync = await uploadLog(id, encounter, $settings.sync);
+        encounter.sync = await uploadLog(id, encounter, $settings.sync, "manual");
         uploading = false;
     }
 

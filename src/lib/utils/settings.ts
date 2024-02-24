@@ -38,7 +38,7 @@ export const defaultSettings = {
         bossOnlyDamage: false,
         keepFavorites: true,
         hideMeterOnStart: false,
-        hideLogsOnStart: false,
+        hideLogsOnStart: false
     },
     shortcuts: {
         hideMeter: {
@@ -148,7 +148,7 @@ export const defaultSettings = {
         }
     },
     buffs: {
-        default: true,
+        default: true
     },
     sync: {
         enabled: false,
@@ -157,6 +157,7 @@ export const defaultSettings = {
         minGearScore: "1520",
         inferno: true,
         normal: true,
+        unclassified: true,
         excludedCharacters: []
     }
 };

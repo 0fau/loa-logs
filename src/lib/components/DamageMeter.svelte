@@ -122,7 +122,7 @@
 
                 let id = event.payload.toString();
                 const encounter = await invoke("load_encounter", { id });
-                await uploadLog(id, encounter, $settings.sync, true);
+                await uploadLog(id, encounter, $settings.sync, "auto");
             });
             let adminErrorEvent = await listen("admin", () => {
                 adminAlert = true;
@@ -319,13 +319,13 @@
         anySupportBrand = false;
     }
 
-    let targetDiv: HTMLElement;
+    let screenshotAreaDiv: HTMLElement;
 
     async function captureScreenshot() {
         takingScreenshot.set(true);
         document.body.style.pointerEvents = "none";
         setTimeout(async () => {
-            const canvas = await html2canvas(targetDiv, {
+            const canvas = await html2canvas(screenshotAreaDiv, {
                 useCORS: true,
                 backgroundColor: "#27272A"
             });
@@ -355,7 +355,7 @@
 </script>
 
 <svelte:window on:contextmenu|preventDefault />
-<div bind:this={targetDiv}>
+<div bind:this={screenshotAreaDiv} style="height: calc(100vh - 1.5rem);">
     <EncounterInfo {encounterDuration} {totalDamageDealt} {dps} {timeUntilKill} screenshotFn={captureScreenshot} />
     {#if currentBoss !== null && $settings.meter.bossHp}
         <div class="relative top-7">
@@ -405,12 +405,12 @@
                                 <th
                                     class="w-12 font-normal"
                                     use:tooltip={{ content: "% Damage buffed by Support Atk. Power buff" }}
-                                >Buff%
+                                    >Buff%
                                 </th>
                             {/if}
                             {#if anySupportBrand && $settings.meter.percentBrand}
                                 <th class="w-12 font-normal" use:tooltip={{ content: "% Damage buffed by Brand" }}
-                                >B%</th>
+                                    >B%</th>
                             {/if}
                             {#if anySupportIdentity && $settings.meter.percentIdentityBySup}
                                 <th

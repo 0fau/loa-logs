@@ -1,5 +1,5 @@
-import {invoke} from "@tauri-apps/api";
-import type {Encounter} from "$lib/types";
+import { invoke } from "@tauri-apps/api";
+import type { Encounter } from "$lib/types";
 
 export const bosses = [
     "Dark Mountain Predator",
@@ -44,12 +44,12 @@ export const bosses = [
     "Achates"
 ];
 
-export async function uploadLog(id: string, encounter: Encounter, settings: any, auto = false) {
+export async function uploadLog(id: string, encounter: Encounter, settings: any, method = "auto") {
     if (!bosses.includes(encounter.currentBossName)) {
         return 0;
     }
 
-    if (auto) {
+    if (method === "auto" || method == "bulk") {
         if (encounter.difficulty === "Challenge") {
             return 0;
         }
@@ -62,26 +62,27 @@ export async function uploadLog(id: string, encounter: Encounter, settings: any,
             return 0;
         }
 
-        if (encounter.entities[encounter.localPlayer]?.gearScore < Number(settings.minGearScore)) {
-            return 0;
-        }
-
-        if (["Normal", "Hard"].includes(encounter.difficulty ?? "") && !settings.normal) {
+        if (
+            ["Normal", "Hard", "Extreme"].includes(encounter.difficulty ?? "") &&
+            (encounter.entities[encounter.localPlayer]?.gearScore < Number(settings.minGearScore) || !settings.normal)
+        ) {
             return 0;
         }
 
         if (["Trial", "Inferno"].includes(encounter.difficulty ?? "") && !settings.inferno) {
             return 0;
         }
+
+        if (encounter.difficulty === "" && !settings.unclassified) {
+            return 0;
+        }
     }
 
-    const resp = await fetch(
-        "https://logs.fau.dev/api/logs/upload" + (auto ? "?auto" : ""),
-        {
-            method: 'POST',
-            headers: {'access_token': settings.accessToken},
-            body: JSON.stringify(encounter)
-        });
+    const resp = await fetch("https://logs.fau.dev/api/logs/upload?" + method, {
+        method: "POST",
+        headers: { access_token: settings.accessToken },
+        body: JSON.stringify(encounter)
+    });
     if (!resp.ok && (resp.status == 500 || resp.status == 401)) {
         let error = "";
         if (resp.status == 500) {
@@ -90,24 +91,30 @@ export async function uploadLog(id: string, encounter: Encounter, settings: any,
             error = "invalid access token";
         }
 
-        await invoke(
-            "write_log",
-            {message: "couldn't upload encounter " + id + " (" + encounter.currentBossName + ") - error: " + error}
-        );
+        await invoke("write_log", {
+            message: "couldn't upload encounter " + id + " (" + encounter.currentBossName + ") - error: " + error
+        });
         return 0;
     }
     const body = await resp.json();
     if (body.error) {
-        await invoke(
-            "write_log",
-            {message: "couldn't upload encounter " + id + " (" + encounter.currentBossName + ") - error: " + body.error.toLowerCase()}
-        );
-        await invoke("sync", {encounter: Number(id), upstream: 0, failed: true});
+        await invoke("write_log", {
+            message:
+                "couldn't upload encounter " +
+                id +
+                " (" +
+                encounter.currentBossName +
+                ") - error: " +
+                body.error.toLowerCase()
+        });
+        await invoke("sync", { encounter: Number(id), upstream: 0, failed: true });
         return 0;
     }
 
     const upstream = body.id;
-    await invoke("write_log", {message: "uploaded encounter " + id + " (" + encounter.currentBossName + ") upstream: " + upstream});
-    await invoke("sync", {encounter: Number(id), upstream: upstream, failed: false});
+    await invoke("write_log", {
+        message: "uploaded encounter " + id + " (" + encounter.currentBossName + ") upstream: " + upstream
+    });
+    await invoke("sync", { encounter: Number(id), upstream: upstream, failed: false });
     return upstream;
 }

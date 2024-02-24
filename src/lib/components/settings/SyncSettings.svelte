@@ -8,24 +8,45 @@
     let result = "";
     let checking = false;
 
-    async function check() {
+    async function checkAccessToken() {
+        if ($settings.sync.accessToken === "") {
+            result = "Access token is not set.";
+            return;
+        }
+
         if (checking) {
             return;
         }
         checking = true;
 
-        await fetch("https://logs.fau.dev/api/users/@me", {
-            headers: {access_token: $settings.sync.accessToken}
-        }).then((resp) => {
-            if (!resp.ok) {
-                throw new Error("Invalid Access Token");
+        let profile = await fetchProfile();
+        if (profile.error) {
+            result = profile.error;
+        } else {
+            if (profile.canUpload) {
+                result = "Nice, " + (profile.username == "" ? profile.discordTag : profile.username) + "!";
+            } else {
+                result = "You don't have upload perms. Check the discord server.";
             }
-            return resp.json();
-        }).then((user) => {
-            result = "Nice, " + (user.username || user.discordTag) + "!";
-        }).catch(() => result = "Invalid Access Token :c");
+        }
 
         checking = false;
+        return result;
+    }
+
+    async function fetchProfile() {
+        let profile;
+        try {
+            let resp = await fetch("https://logs.fau.dev/api/users/@me", {
+                headers: {access_token: $settings.sync.accessToken}
+            });
+            profile = await resp.json();
+        } catch {
+            profile = {
+                error: "Something went wrong."
+            };
+        }
+        return profile;
     }
 
     function saveExcludedCharacters() {
@@ -41,7 +62,7 @@
     let synced = 0;
     let message = "";
 
-    function syncPastLogs() {
+    async function syncPastLogs() {
         if (!$settings.sync.enabled) {
             message = "Sync is not enabled.";
             return;
@@ -52,8 +73,19 @@
             return;
         }
 
-        if (!result.startsWith("Nice, ")) {
-            message = "Check your access token before syncing past logs.";
+        if ($settings.sync.accessToken === "") {
+            message = "Access token is not set.";
+            return;
+        }
+
+        let result = await fetchProfile();
+        if (result.error) {
+            message = "Error: " + result.error;
+            return;
+        }
+
+        if (!result.canUpload) {
+            message = "Error: You don't have upload perms. Check the discord server.";
             return;
         }
 
@@ -63,14 +95,13 @@
         syncing = true;
         synced = 0;
 
-        (async () => {
             const ids = await invoke("get_sync_candidates", {});
             console.log(ids);
 
             for (let i = 0; i < ids.length; i++) {
                 let id = ids[i];
                 const encounter = await invoke("load_encounter", {id: id.toString()});
-                let upstream = await uploadLog(id, encounter, $settings.sync, true);
+                let upstream = await uploadLog(id, encounter, $settings.sync, "bulk");
                 if (upstream != 0) {
                     synced++;
                 }
@@ -84,7 +115,6 @@
             } else {
                 message = "No new logs were uploaded.";
             }
-        })();
     }
 </script>
 
@@ -101,7 +131,7 @@
                 class="focus:border-accent-500 block w-80 rounded-lg border border-gray-600 bg-zinc-700 text-xs text-zinc-300 placeholder-gray-400 focus:ring-0"
                 placeholder="owo owo owo"/>
         <div>
-            <button on:click={check}
+            <button on:click={checkAccessToken}
                     class="rounded-md inline text-xs bg-zinc-600 mr-0.5 py-1 px-1.5 w-fit hover:bg-zinc-700">
                 Check
             </button>
@@ -136,6 +166,9 @@
         <SettingItem
                 name="Inferno Raids"
                 bind:setting={$settings.sync.inferno}/>
+        <SettingItem
+                name="Unlabelled Raids (applicable to older logs)"
+                bind:setting={$settings.sync.unclassified}/>
     </div>
     <div class="pt-4 mt-4 flex flex-col space-y-2 px-2">
         <div class="flex items-center space-x-2">
