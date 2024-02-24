@@ -1,11 +1,11 @@
 {
-    "version": "v1.6.2-sync",
-    "notes": "### v1.6.1\n#### BUG FIXES AND IMPROVEMENTS\n- fix sidereal showing as unknown in extreme valtan\n\n### v1.6.0\n#### NEW FEATURES\n- update meter for extreme valtan patch\n\n#### BUG FIXES AND IMPROVEMENTS\n- fix meter location not saving on exit\n- fix meter window being stuck tiny after minimizing in some cases\n\nthanks to [@yamiM0NSTER](https://github.com/yamiM0NSTER) for the contributions\n\nfull patch notes on [github](https://github.com/snoww/loa-logs/releases/latest)\n\nsend bug reports/suggestions to [#loa-logs](https://discord.gg/sbSa3pkDF5)",
-    "pub_date": "2024-02-08T01:20:17+00:00",
+    "version": "v1.6.3-sync",
+    "notes": "### v1.6.3\n#### BUG FIXES AND IMPROVEMENTS\n- added hp tracking to hell brel g5 50x cubes (note: all orbs share same hp bar in meter, since they share the same name)\n\nfull patch notes on [github](https://github.com/snoww/loa-logs/releases/latest)\n\nsend bug reports/suggestions to [#loa-logs](https://discord.gg/sbSa3pkDF5)",
+    "pub_date": "2024-02-24T14:03:54+00:00",
     "platforms": {
         "windows-x86_64": {
-            "url": "https://github.com/0fau/loa-logs/releases/download/v1.6.2-sync/LOA.Logs_1.6.2-sync_x64-setup.nsis.zip",
-            "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVTZlRuK1JUV2dxNHREUU9pVk03WDdYT3BaTGU5QXdjcFF3UlN6U1NYY1BYaTd2bmZOZ1NNZWFFeGR1aGMrU3ZpSlVIOXN6TlVNMVVFdkN6OWduTWlsc28yYzZjbGpkUWdrPQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzA3MzYwMjM0CWZpbGU6TE9BIExvZ3NfMS42LjItc3luY194NjQtc2V0dXAubnNpcy56aXAKYU9yVlUydzhhR3dyUG1ZdE1OcXUyVm4yTVo2TEp4RndueldxSTVxQndzUm1RMGF3RytvdUpmTmJTOEVyTWZUMXVyWmtvWjFGN1E3ajh3MEJIaCtmQnc9PQo="
+            "url": "https://github.com/0fau/loa-logs/releases/download/v1.6.3-sync/LOA.Logs_1.6.3-sync_x64-setup.nsis.zip",
+            "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVTZlRuK1JUV2dxNGdkVnhqa0FhSGZYMGhEZlZYSWNlYmZZc1hWY3pwVFB6MlBHcnZicndPL3hGSkFFU1BRd0FkZm9pQmZmNnJJcHZnYm1GU2ZUNTdhNU91bk90Z3k0TGdrPQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzA4NzgzMjkwCWZpbGU6TE9BIExvZ3NfMS42LjMtc3luY194NjQtc2V0dXAubnNpcy56aXAKM1hueE1kYjJYcmhGa2RTb1laNnc2MFZEcHNnSjVNUVZOdG8xSnZKVzVLeTc0aFhXbWJFQmpuODRRRFlMVUczMVpXT2VFMnVUeENWTHNUeWtNNm0vQlE9PQo="
         }
     }
 }
