@@ -1,11 +1,11 @@
 {
-    "version": "v1.7.1-sync",
-    "notes": "### v1.7.1\n#### NEW FEATURES\n- update meter for breaker patch\n- note: breaker icon is temporary, will be replaced next update\n\nfull patch notes on [github](https://github.com/snoww/loa-logs/releases/latest)\n\nsend bug reports/suggestions to [#loa-logs](https://discord.gg/sbSa3pkDF5)",
-    "pub_date": "2024-03-20T12:34:56Z",
+    "version": "v1.7.2-sync",
+    "notes": "### v1.7.2\n#### BUG FIXES AND IMPROVEMENTS\n- fix icons for breaker\n\n### v1.7.1\n#### NEW FEATURES\n- update meter for breaker patch\n- note: breaker icon is temporary, will be replaced next update\n\nthanks to [@jasonlmfong](https://github.com/jasonlmfong) for breaker icon\n\nfull patch notes on [github](https://github.com/snoww/loa-logs/releases/latest)\n\nsend bug reports/suggestions to [#loa-logs](https://discord.gg/sbSa3pkDF5)",
+    "pub_date": "2024-03-22T16:34:59+00:00",
     "platforms": {
         "windows-x86_64": {
-            "url": "https://github.com/0fau/loa-logs/releases/download/v1.7.1-sync/LOA.Logs_1.7.1-sync_x64-setup.nsis.zip",
-            "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVTZlRuK1JUV2dxNHZyTGp4ckRmb2czdlVuVWNTS0VVK0V3dzhmcEw2eVFVT3ZYVjlMdHpnWDlSNmNISC9lQ1haVTdSMmRqeEI0RjgwU0RRT1UvL3JGWFpCU1J3VlJLVXdJPQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzEwOTU3NDQ0CWZpbGU6TE9BIExvZ3NfMS43LjEtc3luY194NjQtc2V0dXAubnNpcy56aXAKaFNwd29wUDNhWmViY2hRNnk2VUZpK01rL3hpdndTNUtpeFZ0cDFZZmxOYWlvR2JTK2NYRlUvZHN5M29oaTBkZ28rd1ZvZUNkaXI5RFMvSEorSUI3RHc9PQo="
+            "url": "https://github.com/0fau/loa-logs/releases/download/v1.7.2-sync/LOA.Logs_1.7.2-sync_x64-setup.nsis.zip",
+            "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVTZlRuK1JUV2dxNHRYZTZyc0lXNGdrQlhoeWZhSFlSeFhybGwyV3h6RXlJclhFQzRsK1JiNk41TjFQYmFsQ1VpbnZTaGVseWJvc2d2VkhQb214QVBzcnFPS0FkSzlUWkFrPQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzExMTI0NTQyCWZpbGU6TE9BIExvZ3NfMS43LjItc3luY194NjQtc2V0dXAubnNpcy56aXAKenZlaVd5bWRxdDJUUlR3R0loZEExWVcwamk3aU5JMVdCR0FpcmlXbXBTNDkra0doYnNHOWJxU2VPZTh2cU5YbTlEWFRQRkhPOXdwS2xJUmp1M0FYQ3c9PQo="
         }
     }
 }
