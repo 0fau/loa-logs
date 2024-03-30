@@ -39,6 +39,7 @@ pub struct EncounterState {
     pub party_info: Vec<Vec<String>>,
     pub raid_difficulty: String,
     pub boss_only_damage: bool,
+    pub region: Option<String>,
 }
 
 impl EncounterState {
@@ -62,6 +63,7 @@ impl EncounterState {
             party_info: Vec::new(),
             raid_difficulty: "".to_string(),
             boss_only_damage: false,
+            region: None,
         }
     }
 
@@ -94,6 +96,7 @@ impl EncounterState {
                 EncounterEntity {
                     name: entity.name,
                     id: entity.id,
+                    character_id: entity.character_id,
                     npc_id: entity.npc_id,
                     class: entity.class,
                     class_id: entity.class_id,
@@ -209,6 +212,9 @@ impl EncounterState {
                 player.gear_score = entity.gear_level;
                 player.current_hp = hp;
                 player.max_hp = max_hp;
+                if entity.character_id > 0 {
+                    player.character_id = entity.character_id;
+                }
             })
             .or_insert_with(|| {
                 let mut player = encounter_entity_from_entity(&entity);
@@ -1077,7 +1083,9 @@ impl EncounterState {
         let raid_clear = self.raid_clear;
         let party_info = self.party_info.clone();
         let raid_difficulty = self.raid_difficulty.clone();
+
         let window = self.window.clone();
+        let region = self.region.clone();
 
         task::spawn(async move {
             info!("saving to db - {}", encounter.current_boss_name);
@@ -1098,6 +1106,7 @@ impl EncounterState {
                 raid_clear,
                 party_info,
                 raid_difficulty,
+                region,
             );
 
             tx.commit().expect("failed to commit transaction");
@@ -1113,7 +1122,7 @@ impl EncounterState {
 }
 
 fn encounter_entity_from_entity(entity: &Entity) -> EncounterEntity {
-    EncounterEntity {
+    let mut e = EncounterEntity {
         id: entity.id,
         name: entity.name.clone(),
         entity_type: entity.entity_type,
@@ -1122,11 +1131,18 @@ fn encounter_entity_from_entity(entity: &Entity) -> EncounterEntity {
         class: get_class_from_id(&entity.class_id),
         gear_score: entity.gear_level,
         ..Default::default()
+    };
+
+    if entity.character_id > 0 {
+        e.character_id = entity.character_id;
     }
+
+    e
 }
 
 fn update_player_entity(old: &mut EncounterEntity, new: &Entity) {
     old.id = new.id;
+    old.character_id = new.character_id;
     old.name = new.name.clone();
     old.class_id = new.class_id;
     old.class = get_class_from_id(&new.class_id);
@@ -1472,6 +1488,7 @@ fn insert_data(
     raid_clear: bool,
     party_info: Vec<Vec<String>>,
     raid_difficulty: String,
+    region: Option<String>,
 ) -> i64 {
     let mut encounter_stmt = tx
         .prepare_cached(
@@ -1520,6 +1537,7 @@ fn insert_data(
                     .collect(),
             )
         },
+        region,
         ..Default::default()
     };
 
@@ -1599,8 +1617,9 @@ fn insert_data(
         skills,
         damage_stats,
         skill_stats,
-        dps
-    ) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13, ?14)",
+        dps,
+        character_id
+    ) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13, ?14, ?15)",
         )
         .expect("failed to prepare entity statement");
 
@@ -1786,7 +1805,8 @@ fn insert_data(
                 json!(entity.skills),
                 json!(entity.damage_stats),
                 json!(entity.skill_stats),
-                entity.damage_stats.dps
+                entity.damage_stats.dps,
+                entity.character_id,
             ])
             .expect("failed to insert entity");
     }

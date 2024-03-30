@@ -8,7 +8,7 @@ use serde::{Deserialize, Serialize};
 use serde_with::serde_as;
 use serde_with::DefaultOnError;
 
-pub const DB_VERSION: i32 = 3;
+pub const DB_VERSION: i32 = 4;
 
 #[derive(Debug, Default, Serialize, Deserialize, PartialEq, Copy, Clone)]
 #[allow(non_camel_case_types)]
@@ -112,6 +112,7 @@ pub struct MostDamageTakenEntity {
 #[serde(rename_all = "camelCase")]
 pub struct EncounterEntity {
     pub id: u64,
+    pub character_id: u64,
     pub npc_id: u32,
     pub name: String,
     pub entity_type: EntityType,
@@ -277,6 +278,8 @@ pub struct EncounterMisc {
     pub raid_clear: Option<bool>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub party_info: Option<HashMap<i32, Vec<String>>>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub region: Option<String>,
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone, Default)]
@@ -464,6 +467,19 @@ pub struct CombatEffectAction {
     #[serde(rename(deserialize = "type"))]
     pub action_type: String,
     pub actor: String,
+}
+
+#[derive(Debug, Default, Deserialize, Clone)]
+pub struct  AwsIpRanges {
+    pub prefixes: Vec<Prefix>,
+}
+
+#[derive(Debug, Default, Deserialize, Clone)]
+pub struct Prefix {
+    pub ip_prefix: String,
+    pub region: String,
+    pub service: String,
+    pub network_border_group: String,
 }
 
 #[derive(Debug, Default, Serialize, Deserialize, Clone)]
@@ -735,6 +751,10 @@ lazy_static! {
     };
     pub static ref ESTHER_DATA: Vec<Esther> = {
         let json_str = include_str!("../../meter-data/Esther.json");
+        serde_json::from_str(json_str).unwrap()
+    };
+    pub static ref AWS_REGIONS: AwsIpRanges = {
+        let json_str = include_str!("../../meter-data/ip-ranges.json");
         serde_json::from_str(json_str).unwrap()
     };
     pub static ref STAT_TYPE_MAP: HashMap<&'static str, u32> = {

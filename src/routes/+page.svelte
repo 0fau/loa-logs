@@ -20,6 +20,7 @@
     import { estherMap } from "$lib/constants/esthers";
     import { invoke } from "@tauri-apps/api";
     import { classColors } from "$lib/constants/colors";
+    import { queryParam } from "$lib/utils/strings";
 
     onMount(() => {
         (async () => {
@@ -44,15 +45,15 @@
             skillIcon.set({
                 path: convertFileSrc(await join(await resourceDir(), "images", "skills"))
             });
-            Object.keys(classesMap).forEach(async (key) => {
-                $classIconCache[key] = convertFileSrc(
-                    await join(await resourceDir(), "images", "classes", key + ".png")
-                );
-            });
+            for (const key of Object.keys(classesMap)) {
+                $classIconCache[key] =
+                    convertFileSrc(await join(await resourceDir(), "images", "classes", key + ".png")) +
+                    queryParam;
+            }
             for (const esther of estherMap) {
-                $classIconCache[esther.name] = convertFileSrc(
-                    await join(await resourceDir(), "images", "classes", esther.icon)
-                );
+                $classIconCache[esther.name] =
+                    convertFileSrc(await join(await resourceDir(), "images", "classes", esther.icon)) +
+                    queryParam;
             }
 
             // disable blur on windows 11

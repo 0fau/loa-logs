@@ -39,11 +39,11 @@ export function truncateString(str: string, len = 10): string {
 }
 
 export function getSkillIcon(skillIcon: string): string {
-    return encodeURIComponent("\\" + (skillIcon !== "" ? skillIcon : "unknown.png"));
+    return encodeURIComponent("\\" + (skillIcon !== "" ? skillIcon : "unknown.png")) + queryParam;
 }
 
 export function getImagePath(path: string): string {
-    return encodeURIComponent("\\" + path.replaceAll("/", "\\"));
+    return encodeURIComponent("\\" + path.replaceAll("/", "\\")) + queryParam;
 }
 
 export function getEstherFromNpcId(npcId: number): string {
@@ -53,3 +53,7 @@ export function getEstherFromNpcId(npcId: number): string {
 
     return "Unknown";
 }
+
+// this is used to invalidate caches when loading images
+// change this value when images are updated
+export const queryParam: string = "?174";
