@@ -1,11 +1,11 @@
 {
-    "version": "v1.7.3-sync",
-    "notes": "### v1.7.3\n#### NEW FEATURES\n- update meter for weekly maintenance\n#### BUG FIXES AND IMPROVEMENTS\n- slightly adjusted breaker class icon\n\nfull patch notes on [github](https://github.com/snoww/loa-logs/releases/latest)\n\nsend bug reports/suggestions to [#loa-logs](https://discord.gg/sbSa3pkDF5)",
-    "pub_date": "2024-03-27T22:55:02+00:00",
+    "version": "v1.7.5-sync",
+    "notes": "### 1.7.5\n#### BUG FIXES AND IMPROVEMENTS\n- fixed meter party buffs using excess cpu and memory while opened\n\n### v1.7.4\n#### NEW FEATURES\n- game region is now stored in logs\n#### BUG FIXES AND IMPROVEMENTS\n- fixed breaker icon not loading for some users\n\n### v1.7.3\n#### NEW FEATURES\n- update meter for weekly maintenance\n#### BUG FIXES AND IMPROVEMENTS\n- slightly adjusted breaker class icon\n\nfull patch notes on [github](https://github.com/snoww/loa-logs/releases/latest)\n\nsend bug reports/suggestions to [#loa-logs](https://discord.gg/sbSa3pkDF5)",
+    "pub_date": "2024-03-30T22:18:28+00:00",
     "platforms": {
         "windows-x86_64": {
-            "url": "https://github.com/0fau/loa-logs/releases/download/v1.7.3-sync/LOA.Logs_1.7.3-sync_x64-setup.nsis.zip",
-            "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVTZlRuK1JUV2dxNGkvRFBzeFZoMFdNL1FkcjVNOEJHNXlkWTk4L21Ydlk1Qzg2QnhXWG41KzNDbDd3a3hGalk1VHk0MjU0bC9oS3R6clRXRE5ZWjVmNVgyNGRoalFmNndrPQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzExNTk0Mjk1CWZpbGU6TE9BIExvZ3NfMS43LjMtc3luY194NjQtc2V0dXAubnNpcy56aXAKVWFpZUluaXA4NzlQVHlXaWVKcVIxY0VKQ0E4YXRpYUtUQ2taeG1nbEZCMXBBNzNpUHhlMHRrMEhDUWYySFBBa2JmZHROSW9vd0dTUDMwa2NJcnFKQ1E9PQo="
+            "url": "https://github.com/0fau/loa-logs/releases/download/v1.7.5-sync/LOA.Logs_1.7.5-sync_x64-setup.nsis.zip",
+            "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVTZlRuK1JUV2dxNG1ScVl5WmtsS2ZoVENENGZ6eUZvM0JxTENMbC9EdDNDTkRSN1F3bWEyOW5aWTRiR0NEanBUcDJ2Nml1VzJyeDZUMHFhekd3K0gwMzRPUS81OUlONUEwPQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzExODM2MTE1CWZpbGU6TE9BIExvZ3NfMS43LjUtc3luY194NjQtc2V0dXAubnNpcy56aXAKcVpXQncwaFhOS1VZb2lacmlUakxYU1lSWGdTbkY0bEFTbTJkdTZTSE5qTVhlNjJ4blM3VjdldVNiOXVmTndwM2M1YkdLQ3JWUENrVlhhcUdWU1VxREE9PQo="
         }
     }
 }
