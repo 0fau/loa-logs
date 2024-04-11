@@ -59,6 +59,8 @@
             time = +Date.now();
         }, 1000);
 
+        $rdpsEventDetails = "invalid_zone";
+
         (async () => {
             let encounterUpdateEvent = await listen("encounter-update", (event: EncounterEvent) => {
                 // console.log(+Date.now(), event.payload);
@@ -337,7 +339,6 @@
         anySupportIdentity = false;
         anySupportBrand = false;
         anyRdpsData = false;
-        $rdpsEventDetails = "";
     }
 
     let screenshotAreaDiv: HTMLElement;
