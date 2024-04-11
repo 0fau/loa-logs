@@ -11,7 +11,7 @@
     import { colors, settings, skillIcon } from "$lib/utils/settings";
     import { goto } from "$app/navigation";
     import html2canvas from "html2canvas";
-    import { screenshotAlert, screenshotError, takingScreenshot, raidGates } from "$lib/utils/stores";
+    import { screenshotAlert, screenshotError, takingScreenshot, raidGates, localPlayer } from "$lib/utils/stores";
     import LogIdentity from "./identity/LogIdentity.svelte";
     import LogStagger from "./stagger/LogStagger.svelte";
     import { tooltip } from "$lib/utils/tooltip";
@@ -33,6 +33,7 @@
     import BossBreakdown from "../shared/BossBreakdown.svelte";
     import { bosses as acceptedBosses, uploadLog } from "$lib/utils/sync";
     import LogShields from "$lib/components/logs/LogShields.svelte";
+    import Rdps from "$lib/components/shared/Rdps.svelte";
 
     export let id: string;
     export let encounter: Encounter;
@@ -43,7 +44,7 @@
     let playerDamagePercentages: Array<number> = [];
     let topDamageDealt = 0;
     let totalDamageDealt = 0;
-    let localPlayer: Entity | null = null;
+    let localPlayerEntity: Entity | null = null;
 
     let anyDead: boolean;
     let anyFrontAtk: boolean = false;
@@ -51,6 +52,7 @@
     let anySupportBuff: boolean = false;
     let anySupportIdentity: boolean = false;
     let anySupportBrand: boolean = false;
+    let anyRdpsData: boolean = false;
 
     let isSolo = true;
 
@@ -87,6 +89,7 @@
                     .filter((e) => e.damageStats.damageDealt > 0 && e.entityType === EntityType.BOSS)
                     .sort((a, b) => b.damageStats.damageDealt - a.damageStats.damageDealt);
             }
+            $localPlayer = encounter.localPlayer;
             isSolo = players.length === 1;
             topDamageDealt = encounter.encounterDamageStats.topDamageDealt;
             playerDamagePercentages = players.map((player) => (player.damageStats.damageDealt / topDamageDealt) * 100);
@@ -96,6 +99,7 @@
             anySupportBuff = players.some((player) => player.damageStats.buffedBySupport > 0);
             anySupportIdentity = players.some((player) => player.damageStats.buffedByIdentity > 0);
             anySupportBrand = players.some((player) => player.damageStats.debuffedBySupport > 0);
+            anyRdpsData = players.some((player) => player.damageStats.rdpsDamageReceived > 0);
             if ($settings.general.showEsther) {
                 totalDamageDealt =
                     encounter.encounterDamageStats.totalDamageDealt +
@@ -107,7 +111,7 @@
             }
 
             if (encounter.localPlayer) {
-                localPlayer = encounter.entities[encounter.localPlayer];
+                localPlayerEntity = encounter.entities[encounter.localPlayer];
             }
 
             if (playerName) {
@@ -208,6 +212,11 @@
         setChartView();
     }
 
+    function RDPSTab() {
+        tab = MeterTab.RDPS;
+        setChartView();
+    }
+
     function partySynergyTab() {
         tab = MeterTab.PARTY_BUFFS;
         setChartView();
@@ -237,7 +246,7 @@
     }
 
     function identityTab() {
-        if (!localPlayer) return;
+        if (!localPlayerEntity) return;
         tab = MeterTab.IDENTITY;
         chartType = ChartType.IDENTITY;
     }
@@ -372,6 +381,15 @@
                     on:click={damageTab}>
                     Damage
                 </button>
+                {#if anyRdpsData}
+                    <button
+                        class="flex-shrink-0 rounded-sm px-3 py-1"
+                        class:bg-accent-900={tab === MeterTab.RDPS}
+                        class:bg-gray-700={tab !== MeterTab.RDPS}
+                        on:click={RDPSTab}>
+                        RDPS
+                    </button>
+                {/if}
                 <button
                     class="flex-shrink-0 rounded-sm px-2 py-1"
                     class:bg-accent-900={tab === MeterTab.PARTY_BUFFS}
@@ -413,7 +431,7 @@
                         Bosses
                     </button>
                 {/if}
-                {#if localPlayer && localPlayer.skillStats.identityStats}
+                {#if localPlayerEntity && localPlayerEntity.skillStats.identityStats}
                     <button
                         class="rounded-sm px-2 py-1"
                         class:bg-accent-900={tab === MeterTab.IDENTITY}
@@ -595,8 +613,8 @@
             {/if}
         </div>
     {/if}
-    {#if tab === MeterTab.IDENTITY && localPlayer !== null}
-        <LogIdentity {localPlayer} duration={encounter.duration} />
+    {#if tab === MeterTab.IDENTITY && localPlayerEntity !== null}
+        <LogIdentity localPlayer={localPlayerEntity} duration={encounter.duration} />
     {:else if tab === MeterTab.STAGGER && encounter.encounterDamageStats.misc && encounter.encounterDamageStats.misc.staggerStats}
         <LogStagger staggerStats={encounter.encounterDamageStats.misc.staggerStats} />
     {:else}
@@ -646,7 +664,7 @@
                                 {/if}
                                 {#if anySupportBrand && $settings.logs.percentBrand}
                                     <th class="w-12 font-normal" use:tooltip={{ content: "% Damage buffed by Brand" }}
-                                    >B%
+                                        >B%
                                     </th>
                                 {/if}
                                 {#if anySupportIdentity && $settings.logs.percentIdentityBySup}
@@ -654,6 +672,13 @@
                                         class="w-12 font-normal"
                                         use:tooltip={{ content: "% Damage buffed by Support Identity" }}
                                         >Iden%
+                                    </th>
+                                {/if}
+                                {#if anyRdpsData && $settings.logs.ssyn}
+                                    <th
+                                        class="w-12 font-normal"
+                                        use:tooltip={{ content: "% Damage gained from Support" }}
+                                    >sSyn%
                                     </th>
                                 {/if}
                                 {#if $settings.logs.counters}
@@ -676,6 +701,7 @@
                                         {anySupportBuff}
                                         {anySupportIdentity}
                                         {anySupportBrand}
+                                        {anyRdpsData}
                                         end={encounter.lastCombatPacket}
                                         {isSolo} />
                                 </tr>
@@ -692,6 +718,12 @@
                         </table>
                     {/if}
                 {/if}
+            {:else if tab === MeterTab.RDPS}
+                <Rdps
+                    meterSettings={$settings.logs}
+                    {players}
+                    totalDamageDealt={encounter.encounterDamageStats.totalDamageDealt}
+                    duration={encounter.duration} />
             {:else if tab === MeterTab.PARTY_BUFFS}
                 {#if state === MeterState.PARTY}
                     <LogBuffs {tab} encounterDamageStats={encounter.encounterDamageStats} {players} {inspectPlayer} />

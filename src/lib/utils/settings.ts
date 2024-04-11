@@ -2,13 +2,13 @@ import { classColors } from "$lib/constants/colors";
 import { invoke } from "@tauri-apps/api";
 import { emit } from "@tauri-apps/api/event";
 import { register, unregisterAll } from "@tauri-apps/api/globalShortcut";
-import { get, type Writable, writable } from "svelte/store";
+import { get, writable } from "svelte/store";
 import { hideAll } from "tippy.js";
 import { clickthroughStore } from "$lib/utils/stores";
-import type { UpdateManifest } from "@tauri-apps/api/updater";
 
 export const defaultSettings = {
     general: {
+        lowPerformanceMode: false,
         showNames: true,
         showGearScore: false,
         showEsther: true,
@@ -38,7 +38,8 @@ export const defaultSettings = {
         bossOnlyDamage: false,
         keepFavorites: true,
         hideMeterOnStart: false,
-        hideLogsOnStart: false
+        hideLogsOnStart: false,
+        constantLocalPlayerColor: false
     },
     shortcuts: {
         hideMeter: {
@@ -92,6 +93,9 @@ export const defaultSettings = {
         percentBuffBySup: false,
         percentIdentityBySup: false,
         percentBrand: false,
+        rdpsDamageGiven: false,
+        rdpsDamageReceived: false,
+        ssyn: true,
         breakdown: {
             damage: true,
             dps: true,
@@ -128,6 +132,9 @@ export const defaultSettings = {
         percentBuffBySup: false,
         percentIdentityBySup: false,
         percentBrand: false,
+        rdpsDamageGiven: true,
+        rdpsDamageReceived: true,
+        ssyn: true,
         breakdown: {
             damage: true,
             dps: true,
