@@ -932,7 +932,9 @@ fn load_encounter(window: tauri::Window, id: String) -> Encounter {
         skill_stats,
         last_update,
         entity_type,
-        npc_id
+        npc_id,
+        character_id,
+        engravings
     FROM entity
     WHERE encounter_id = ?;
     ",
@@ -955,6 +957,12 @@ fn load_encounter(window: tauri::Window, id: String) -> Encounter {
 
             let entity_type: String = row.get(11).unwrap_or_default();
 
+            let character_id: u64 = row.get(13).unwrap_or_default();
+
+            let engravings_str: String = row.get(14).unwrap_or_default();
+            let engravings =
+                serde_json::from_str::<Option<PlayerEngravings>>(engravings_str.as_str()).unwrap_or_default();
+
             Ok(EncounterEntity {
                 name: row.get(0)?,
                 class_id: row.get(1)?,
@@ -969,6 +977,8 @@ fn load_encounter(window: tauri::Window, id: String) -> Encounter {
                 entity_type: EntityType::from_str(entity_type.as_str())
                     .unwrap_or(EntityType::UNKNOWN),
                 npc_id: row.get(12)?,
+                character_id,
+                engraving_data: engravings,
                 ..Default::default()
             })
         })
