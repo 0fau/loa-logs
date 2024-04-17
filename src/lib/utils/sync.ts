@@ -42,7 +42,7 @@ export const bosses = [
     "Deskaluda",
     "Caliligos",
     "Achates",
-    "Vescal",
+    "Veskal",
     "Killineza the Dark Worshipper",
     "Valinak, Knight of Darkness",
     "Valinak, Taboo Usurper",
