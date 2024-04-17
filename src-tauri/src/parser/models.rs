@@ -690,6 +690,7 @@ pub struct GeneralSettings {
     pub log_scale: String,
     #[serde(default = "default_true")]
     pub always_on_top: bool,
+    #[serde(default = "default_true")]
     pub boss_only_damage: bool,
     #[serde(default = "default_true")]
     pub keep_favorites: bool,
@@ -752,9 +753,23 @@ pub struct LogTabs {
     pub counters: bool,
     pub min_encounter_duration: i32,
     #[serde(default = "default_true")]
+    pub rdps_split_party: bool,
+    #[serde(default = "default_true")]
     pub rdps_damage_given: bool,
     #[serde(default = "default_true")]
     pub rdps_damage_received: bool,
+    #[serde(default = "default_true")]
+    pub rdps_contribution: bool,
+    #[serde(default = "default_true")]
+    pub rdps_s_contribution: bool,
+    #[serde(default = "default_true")]
+    pub rdps_d_contribution: bool,
+    #[serde(default = "default_true")]
+    pub rdps_syn: bool,
+    #[serde(default = "default_true")]
+    pub rdps_s_syn: bool,
+    #[serde(default = "default_true")]
+    pub rdps_d_syn: bool,
     #[serde(default = "default_true")]
     pub ssyn: bool,
     pub breakdown: BreakdownTabs,
@@ -787,8 +802,19 @@ pub struct MeterTabs {
     pub positional_dmg_percent: bool,
     pub percent_brand: bool,
     pub counters: bool,
+    #[serde(default = "default_true")]
+    pub rdps_split_party: bool,
     pub rdps_damage_given: bool,
     pub rdps_damage_received: bool,
+    pub rdps_contribution: bool,
+    pub rdps_s_contribution: bool,
+    pub rdps_d_contribution: bool,
+    #[serde(default = "default_true")]
+    pub rdps_syn: bool,
+    #[serde(default = "default_true")]
+    pub rdps_s_syn: bool,
+    #[serde(default = "default_true")]
+    pub rdps_d_syn: bool,
     #[serde(default = "default_true")]
     pub ssyn: bool,
     pub breakdown: BreakdownTabs,
@@ -1001,11 +1027,12 @@ lazy_static! {
         let valid_zones = [
             30801, 30802, 30803, 30804, 30805, 30806, 30807, 30832, 30835, 37001, 37002, 37003,
             37011, 37012, 37021, 37022, 37031, 37032, 37041, 37042, 37051, 37061, 37071, 37072,
-            37081, 37091, 37092, 37093, 37094, 37101, 37102, 37111, 37112, 308010, 308011, 308012,
-            308014, 308015, 308016, 308017, 308018, 308019, 308020, 308021, 308022, 308023, 308024,
-            308025, 308026, 308027, 308028, 308029, 308030, 308037, 308039, 308040, 308041, 308042,
-            308043, 308410, 308411, 308412, 308414, 308415, 308416, 308417, 308418, 308419, 308420,
-            308421, 308422, 308423, 308424, 308425, 308426, 308428, 308429, 308430, 308437, 309020,
+            37081, 37091, 37092, 37093, 37094, 37101, 37102, 37111, 37112, 37121, 37122, 37123,
+            37124, 308010, 308011, 308012, 308014, 308015, 308016, 308017, 308018, 308019, 308020,
+            308021, 308022, 308023, 308024, 308025, 308026, 308027, 308028, 308029, 308030, 308037,
+            308039, 308040, 308041, 308042, 308043, 308044, 308410, 308411, 308412, 308414, 308415,
+            308416, 308417, 308418, 308419, 308420, 308421, 308422, 308423, 308424, 308425, 308426,
+            308428, 308429, 308430, 308437, 309020,
         ];
 
         valid_zones.iter().cloned().collect()

@@ -91,6 +91,10 @@
         <div>RDPS</div>
         <div class="mt-4 flex flex-col space-y-2 px-2">
             <SettingItem
+                name="Split RDPS Parties"
+                description="Split players into their respective parties for RDPS"
+                bind:setting={$settings.meter.rdpsSplitParty} />
+            <SettingItem
                 name="RDPS Received"
                 description="Total damage received from other players"
                 bind:setting={$settings.meter.rdpsDamageReceived} />
@@ -98,6 +102,30 @@
                 name="RDPS Given"
                 description="Total damage given to other players"
                 bind:setting={$settings.meter.rdpsDamageGiven} />
+            <SettingItem
+                name="Damage Contribution %"
+                description="Percentage of your damage that is from all other players' buffs other than your own"
+                bind:setting={$settings.meter.rdpsContribution} />
+            <SettingItem
+                name="Support Damage Contribution %"
+                description="Percentage of your damage that is from support buffs"
+                bind:setting={$settings.meter.rdpsSContribution} />
+            <SettingItem
+                name="Dealer Damage Contribution %"
+                description="Percentage of your damage that is from dealer buffs"
+                bind:setting={$settings.meter.rdpsDContribution} />
+            <SettingItem
+                name="Synergy %"
+                description="Show the percentage of damage gained from all synergies other than your own"
+                bind:setting={$settings.meter.rdpsSyn} />
+            <SettingItem
+                name="Support Synergy %"
+                description="Show the percentage of damage gained from support synergies"
+                bind:setting={$settings.meter.rdpsSSyn} />
+            <SettingItem
+                name="Dealer Synergy %"
+                description="Show the percentage of damage gained from dealer synergies"
+                bind:setting={$settings.meter.rdpsDSyn} />
         </div>
     </div>
     <div class="pt-4">

@@ -491,7 +491,7 @@
                 </table>
             {/if}
         {:else if tab === MeterTab.RDPS}
-            <Rdps {players} {duration} {totalDamageDealt} meterSettings={$settings.meter}/>
+            <Rdps {players} {duration} {totalDamageDealt} meterSettings={$settings.meter} encounterPartyInfo={parties}/>
         {:else if tab === MeterTab.PARTY_BUFFS}
             {#if state === MeterState.PARTY}
                 <Buffs
