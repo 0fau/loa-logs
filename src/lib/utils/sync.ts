@@ -41,7 +41,17 @@ export const bosses = [
     "Kungelanium",
     "Deskaluda",
     "Caliligos",
-    "Achates"
+    "Achates",
+    "Vescal",
+    "Killineza the Dark Worshipper",
+    "Valinak, Knight of Darkness",
+    "Valinak, Taboo Usurper",
+    "Valinak, Herald of the End",
+    "Thaemine the Lightqueller",
+    "Darkness Sword",
+    "Giant Darkness Sword",
+    "Darkness Legion Commander Thaemine",
+    "Thaemine, Conqueror of Stars"
 ];
 
 export async function uploadLog(id: string, encounter: Encounter, settings: any, method = "auto") {
