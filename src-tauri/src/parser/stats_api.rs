@@ -11,11 +11,12 @@ use serde::{Deserialize, Serialize};
 use serde_json::json;
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::{Arc, Mutex};
-use tauri::{Window, Wry};
+use tauri::{Manager, Window, Wry};
 
 const API_URL: &str = "https://inspect.fau.dev/query";
 
 pub struct StatsApi {
+    pub client_id: String,
     cache: Arc<Mutex<HashMap<String, PlayerStats>>>,
     stats_cache: Arc<Mutex<HashMap<String, Stats>>>,
     cache_status: Arc<AtomicBool>,
@@ -24,11 +25,13 @@ pub struct StatsApi {
     hash_cache: Arc<Mutex<HashMap<String, String>>>,
     window: Arc<Window<Wry>>,
     pub valid_zone: bool,
+    valid_stats: Option<bool>,
 }
 
 impl StatsApi {
     pub fn new(window: Window<Wry>) -> Self {
         Self {
+            client_id: String::new(),
             window: Arc::new(window),
             cache: Arc::new(Mutex::new(HashMap::new())),
             stats_cache: Arc::new(Mutex::new(HashMap::new())),
@@ -37,12 +40,13 @@ impl StatsApi {
             client: Arc::new(Client::new()),
             hash_cache: Arc::new(Mutex::new(HashMap::new())),
             valid_zone: false,
+            valid_stats: None,
         }
     }
 
     pub fn sync(
         &mut self,
-        party: Vec<Vec<String>>,
+        party: &Vec<Vec<String>>,
         state: &EncounterState,
         entity_tracker: &EntityTracker,
         cached: &HashMap<u64, String>,
@@ -63,7 +67,6 @@ impl StatsApi {
         }
 
         let now = Utc::now();
-        self.remove_expired_from_cache(now);
         let player_names = party.iter().flatten().cloned().collect::<HashSet<String>>();
         let mut player_hashes: Vec<PlayerHash> = Vec::new();
         if let (Ok(mut cache), Ok(mut hash_cache)) = (self.cache.lock(), self.hash_cache.lock()) {
@@ -78,10 +81,10 @@ impl StatsApi {
                             .get(player)
                             .map_or(false, |cached_hash| cached_hash == &hash)
                         {
-                            cache.entry(player.clone()).and_modify(|stats| {
-                                stats.expiry = now + chrono::Duration::hours(1);
-                            });
-                            continue;
+                            if let Some(cached_player) = cache.get_mut(player) {
+                                cached_player.expiry = now + chrono::Duration::hours(1);
+                                // debug_print(format_args!("cached stats: {:?}", cached_player));
+                            }
                         } else {
                             hash_cache.insert(player.clone(), hash.clone());
                             player_hashes.push(PlayerHash {
@@ -89,15 +92,31 @@ impl StatsApi {
                                 hash,
                             });
                         }
+                    } else {
+                        debug_print(format_args!(
+                            "missing info for {:?}, could not generate hash",
+                            player
+                        ));
+                        self.broadcast("missing_info");
+                        return;
                     }
                 }
             }
         }
 
+        debug_print(format_args!(
+            "requesting for {}/{} players",
+            player_hashes.len(),
+            player_names.len()
+        ));
+        
+        self.remove_expired_from_cache(now);
+
         if player_hashes.is_empty() {
             return;
         }
 
+        self.valid_stats = None;
         self.request(region, player_hashes);
     }
 
@@ -107,6 +126,7 @@ impl StatsApi {
         let cache_status = Arc::clone(&self.cache_status);
         let stats_cache_clone = Arc::clone(&self.stats_cache);
         let hash_cache_clone = Arc::clone(&self.hash_cache);
+        let client_id_clone = self.client_id.clone();
 
         self.cancellation_flag.store(true, Ordering::SeqCst);
         let new_cancellation_flag = Arc::new(AtomicBool::new(false));
@@ -116,6 +136,7 @@ impl StatsApi {
         let window_clone = Arc::clone(&self.window);
         tokio::task::spawn(async move {
             make_request(
+                &client_id_clone,
                 &client_clone,
                 &window_clone,
                 &region,
@@ -133,6 +154,7 @@ impl StatsApi {
 
     pub fn get_hash(&self, player: &Entity) -> Option<String> {
         if player.items.equip_list.is_none()
+            || player.gear_level <= 0.0
             || player.character_id == 0
             || player.class_id == 0
             || player.name == "You"
@@ -160,9 +182,11 @@ impl StatsApi {
             return Some("".to_string());
         }
 
+        // {player_name}{xxxx.xx}{xxx}{character_id}{equip_data}
         let data = format!(
-            "{}{}{}{}",
+            "{}{:.02}{}{}{}",
             player.name,
+            player.gear_level,
             player.class_id,
             player.character_id,
             equip_data.iter().map(|x| x.to_string()).collect::<String>()
@@ -171,10 +195,26 @@ impl StatsApi {
         Some(format!("{:x}", compute(data)))
     }
 
-    pub fn get_all_stats(&self, difficulty: &str) -> Option<HashMap<String, PlayerStats>> {
-        if !self.valid_difficulty(difficulty) {
+    pub fn get_all_stats(
+        &mut self,
+        difficulty: &str,
+        party: &[Vec<String>],
+    ) -> Option<HashMap<String, PlayerStats>> {
+        if self.valid_stats.is_none() {
+            if let Ok(cache) = self.cache.lock() {
+                self.valid_stats = Some(
+                    party
+                        .iter()
+                        .flatten()
+                        .all(|player| cache.contains_key(player)),
+                );
+            }
+        }
+
+        if !self.valid_difficulty(difficulty) || !self.valid_stats.unwrap_or(false) {
             return None;
         }
+
         if self.cache_status.load(Ordering::Relaxed) {
             if let Ok(cache) = self.cache.lock() {
                 Some(cache.clone())
@@ -186,10 +226,35 @@ impl StatsApi {
         }
     }
 
-    pub fn get_stats(&self, difficulty: &str) -> Option<HashMap<String, Stats>> {
+    pub fn get_stats(
+        &mut self,
+        difficulty: &str,
+        party: &[Vec<String>],
+        raid_duration: i64,
+    ) -> Option<HashMap<String, Stats>> {
+        if self.valid_stats.is_none() {
+            if let Ok(cache) = self.stats_cache.lock() {
+                let valid = party
+                    .iter()
+                    .flatten()
+                    .all(|player| cache.contains_key(player));
+
+                if valid || raid_duration >= 15_000 {
+                    self.valid_stats = Some(valid);
+                }
+            }
+        }
+
         if !self.valid_difficulty(difficulty) {
             return None;
         }
+        if !self.valid_stats.unwrap_or(false) {
+            if self.valid_stats.is_some() {
+                self.broadcast("invalid_stats");
+            }
+            return None;
+        }
+
         if self.cache_status.load(Ordering::Relaxed) {
             if let Ok(cache) = self.stats_cache.lock() {
                 Some(cache.clone())
@@ -226,7 +291,7 @@ impl StatsApi {
     }
 
     fn valid_difficulty(&self, difficulty: &str) -> bool {
-        (difficulty == "Normal" || difficulty == "Hard" || difficulty == "Extreme")
+        (difficulty == "Normal" || difficulty == "Hard" || difficulty == "The First")
             && self.valid_zone
     }
 
@@ -239,6 +304,7 @@ impl StatsApi {
 
 #[async_recursion]
 async fn make_request(
+    client_id: &str,
     client: &Client,
     window: &Arc<Window<Wry>>,
     region: &str,
@@ -262,7 +328,10 @@ async fn make_request(
         return;
     }
 
+    let version = window.app_handle().package_info().version.to_string();
     let request_body = json!({
+        "id": client_id,
+        "version": version,
         "region": region.clone(),
         "characters": players.clone(),
     });
@@ -330,6 +399,7 @@ async fn make_request(
                     // retry request with missing players
                     // until we receive stats for all players
                     make_request(
+                        client_id,
                         client,
                         window,
                         region,

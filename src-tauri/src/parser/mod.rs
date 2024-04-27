@@ -38,6 +38,7 @@ use std::sync::Arc;
 use std::thread;
 use std::time::{Duration, Instant};
 use tauri::{Manager, Window, Wry};
+use uuid::Uuid;
 
 use self::models::{Settings, TripodIndex, TripodLevel};
 
@@ -109,6 +110,7 @@ pub fn start(
     // this info is used in case meter was opened late
     let mut local_players: HashMap<u64, String> = HashMap::new();
     let mut local_player_path = window.app_handle().path_resolver().resource_dir().unwrap();
+    let mut client_id: String;
     local_player_path.push("local_players.json");
 
     if local_player_path.exists() {
@@ -116,6 +118,15 @@ pub fn start(
         local_players = serde_json::from_str(&local_players_file).unwrap_or_default();
         // load region if it was saved prior
         state.region = local_players.get(&0).cloned();
+        client_id = local_players.get(&1).cloned().unwrap_or_default();
+        if client_id.is_empty() {
+            client_id = Uuid::new_v4().to_string();
+            stats_api.client_id = client_id.clone();
+            local_players.insert(1, client_id.clone());
+            write_local_players(&local_players, &local_player_path)?;
+        } else {
+            stats_api.client_id = client_id.clone();
+        }
     }
 
     let emit_details = Arc::new(AtomicBool::new(false));
@@ -197,7 +208,7 @@ pub fn start(
         if save.load(Ordering::Relaxed) {
             save.store(false, Ordering::Relaxed);
             state.party_info = update_party(&party_tracker, &entity_tracker);
-            let player_stats = stats_api.get_all_stats(&state.raid_difficulty);
+            let player_stats = stats_api.get_all_stats(&state.raid_difficulty, &state.party_info);
             state.save_to_db(player_stats, true);
             state.saved = true;
             state.resetting = true;
@@ -283,7 +294,7 @@ pub fn start(
                     party_cache = None;
                     party_map_cache = HashMap::new();
                     let entity = entity_tracker.init_env(pkt);
-                    let player_stats = stats_api.get_all_stats(&state.raid_difficulty);
+                    let player_stats = stats_api.get_all_stats(&state.raid_difficulty, &state.party_info);
                     state.on_init_env(entity, player_stats);
                 }
             }
@@ -452,7 +463,8 @@ pub fn start(
                         entity_tracker.party_status_effect_remove(pkt);
                     if left_workshop {
                         let party = update_party(&party_tracker, &entity_tracker);
-                        stats_api.sync(party, &state, &entity_tracker, &local_players);
+                        stats_api.sync(&party, &state, &entity_tracker, &local_players);
+                        state.party_info = party;
                     }
                     if is_shield {
                         for status_effect in shields_broken {
@@ -504,7 +516,7 @@ pub fn start(
                 }
             }
             Pkt::RaidBossKillNotify => {
-                let player_stats = stats_api.get_all_stats(&state.raid_difficulty);
+                let player_stats = stats_api.get_all_stats(&state.raid_difficulty, &state.party_info);
                 state.on_phase_transition(1, player_stats);
                 state.raid_clear = true;
                 debug_print(format_args!("phase: 1 - RaidBossKillNotify"));
@@ -516,7 +528,7 @@ pub fn start(
                 } else {
                     update_party(&party_tracker, &entity_tracker)
                 };
-                let player_stats = stats_api.get_all_stats(&state.raid_difficulty);
+                let player_stats = stats_api.get_all_stats(&state.raid_difficulty, &state.party_info);
                 state.on_phase_transition(0, player_stats);
                 raid_end_cd = Instant::now();
                 debug_print(format_args!("phase: 0 - RaidResult"));
@@ -591,12 +603,13 @@ pub fn start(
                     PKTSkillDamageAbnormalMoveNotify::new,
                     "PKTSkillDamageAbnormalMoveNotify",
                 ) {
+                    let now = Utc::now().timestamp_millis();
                     let owner = entity_tracker.get_source_entity(pkt.source_id);
                     let local_character_id = id_tracker
                         .borrow()
                         .get_local_character_id(entity_tracker.local_entity_id);
                     let target_count = pkt.skill_damage_abnormal_move_events.len() as i32;
-                    let player_stats = stats_api.get_stats(&state.raid_difficulty);
+                    let player_stats = stats_api.get_stats(&state.raid_difficulty, &state.party_info, now - state.encounter.fight_start);
 
                     for event in pkt.skill_damage_abnormal_move_events.iter() {
                         let target_entity =
@@ -626,7 +639,7 @@ pub fn start(
                             target_count,
                             &entity_tracker,
                             &player_stats,
-                            Utc::now().timestamp_millis(),
+                            now,
                         );
                     }
                 }
@@ -640,12 +653,13 @@ pub fn start(
                 if let Some(pkt) =
                     parse_pkt(&data, PKTSkillDamageNotify::new, "PktSkillDamageNotify")
                 {
+                    let now = Utc::now().timestamp_millis();
                     let owner = entity_tracker.get_source_entity(pkt.source_id);
                     let local_character_id = id_tracker
                         .borrow()
                         .get_local_character_id(entity_tracker.local_entity_id);
                     let target_count = pkt.skill_damage_events.len() as i32;
-                    let player_stats = stats_api.get_stats(&state.raid_difficulty);
+                    let player_stats = stats_api.get_stats(&state.raid_difficulty, &state.party_info, now - state.encounter.fight_start);
 
                     for event in pkt.skill_damage_events.iter() {
                         let target_entity = entity_tracker.get_or_create_entity(event.target_id);
@@ -674,7 +688,7 @@ pub fn start(
                             target_count,
                             &entity_tracker,
                             &player_stats,
-                            Utc::now().timestamp_millis(),
+                            now,
                         );
                     }
                 }
@@ -742,7 +756,8 @@ pub fn start(
                         );
                     if left_workshop {
                         let party = update_party(&party_tracker, &entity_tracker);
-                        stats_api.sync(party, &state, &entity_tracker, &local_players);
+                        stats_api.sync(&party, &state, &entity_tracker, &local_players);
+                        state.party_info = party;
                     }
                     if is_shield {
                         if shields_broken.is_empty() {
@@ -769,7 +784,7 @@ pub fn start(
                     || state.encounter.fight_start == 0
                     || state.encounter.current_boss_name == "Saydon"
                 {
-                    let player_stats = stats_api.get_all_stats(&state.raid_difficulty);
+                    let player_stats = stats_api.get_all_stats(&state.raid_difficulty, &state.party_info);
                     state.on_phase_transition(3, player_stats);
                     debug_print(format_args!(
                         "phase: 3 - resetting encounter - TriggerBossBattleStatus"
@@ -789,7 +804,7 @@ pub fn start(
                                 update_party(&party_tracker, &entity_tracker)
                             };
                             state.raid_clear = true;
-                            let player_stats = stats_api.get_all_stats(&state.raid_difficulty);
+                            let player_stats = stats_api.get_all_stats(&state.raid_difficulty, &state.party_info);
                             state.on_phase_transition(2, player_stats);
                             raid_end_cd = Instant::now();
                             debug_print(format_args!("phase: 2 - clear - TriggerStartNotify"));
@@ -802,14 +817,15 @@ pub fn start(
                                 update_party(&party_tracker, &entity_tracker)
                             };
                             state.raid_clear = false;
-                            let player_stats = stats_api.get_all_stats(&state.raid_difficulty);
+                            let player_stats = stats_api.get_all_stats(&state.raid_difficulty, &state.party_info);
                             state.on_phase_transition(4, player_stats);
                             raid_end_cd = Instant::now();
                             debug_print(format_args!("phase: 4 - wipe - TriggerStartNotify"));
                         }
                         27 | 10 | 11 => {
                             let party = update_party(&party_tracker, &entity_tracker);
-                            stats_api.sync(party, &state, &entity_tracker, &local_players);
+                            stats_api.sync(&party, &state, &entity_tracker, &local_players);
+                            state.party_info = party;
                         }
                         _ => {}
                     }
