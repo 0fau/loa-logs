@@ -1,21 +1,11 @@
 {
-<<<<<<< HEAD
-    "version": "v1.9.4-sync",
-    "notes": "### v1.9.3\n#### BUG FIXES\n- fix thaemine g4 (again)\n\n### v1.9.2\n### RDPS NOTE: if you or anyone in your raid swaps gear presets, please wait up to 20s before pulling for the stats server to get updated gear info\n### GENERAL NOTE: boss only damage is turned on by default when meter is started. this might be why you aren't seeing anything recorded in chaos dungeons.\n#### BUG FIXES AND IMPROVEMENTS\n- fix filtering for veskal guardian raid\n- fix filtering for thaemine g3 and g4\n- fix incorrect boss name for thaemine g3 swords\n- added separate boss for thaemine g4 prokel\n- removed giant darkness swords as bosses for thaemine g4\n- removed random bosses for thaemine g4\n\n\nfull patch notes on [github](https://github.com/snoww/loa-logs/releases/latest)\n\nsend bug reports/suggestions to [#loa-logs](https://discord.gg/sbSa3pkDF5)",
-    "pub_date": "2024-04-21T01:36:45+00:00",
-    "platforms": {
-        "windows-x86_64": {
-            "url": "https://github.com/0fau/loa-logs/releases/download/v1.9.4-sync/LOA.Logs_1.9.4-sync_x64-setup.nsis.zip",
-            "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVTZlRuK1JUV2dxNHNMVjBWQ2FnYnZFR3RIaUQ1dHU2THkrRm1JdVFMc3NGVTVMeUt6R1pJeFRBR2lrcDYwa3VsN3NEd1h5RUxQWVo0WmZ4OEJLZWE3Q1pLWi9ZTjhHSVFVPQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzEzNjYyNTg4CWZpbGU6TE9BIExvZ3NfMS45LjQtc3luY194NjQtc2V0dXAubnNpcy56aXAKS0pxYTcwWGpMMERRLzBpTzVaM2NFbjJ3d2ZVcXc5NWk4VnFGSFFMQ3BvNFZJMWgwZEZscUhmdWlZUDN4VWhZVXFvZkNzVUhGYmt3ZWdES1Z4d2RCQ3c9PQo="
-=======
-    "version": "v1.9.5",
+    "version": "v1.9.5-sync",
     "notes": "### v1.9.5\n#### BUG FIXES AND IMPROVEMENTS\n- more rdps fixes\n- fix damage% tab not showing in live meter (sorry)\n\nfull patch notes on [github](https://github.com/snoww/loa-logs/releases/latest)\n\nsend bug reports/suggestions to [#loa-logs](https://discord.gg/sbSa3pkDF5)",
-    "pub_date": "2024-04-25T23:29:57.339Z",
+    "pub_date": "2024-04-27T00:30:48+00:00",
     "platforms": {
         "windows-x86_64": {
-            "url": "https://github.com/snoww/loa-logs/releases/download/v1.9.5/LOA.Logs_1.9.5_x64-setup.nsis.zip",
-            "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVUYWhFaUdQWk9GYlhwM1J2czdiYnhyeFEwOUtseVN6dk5yb1lMdDd6bVh3MEVMMDRQSHRtc3pXM2FRbnBQdlBGTmR0eVIvbDdPZ0dueEtmN01DencrU2ZkSEtrMWx1RVFFPQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzE0MDg3NzY2CWZpbGU6TE9BIExvZ3NfMS45LjVfeDY0LXNldHVwLm5zaXMuemlwCkRCSlNIQTZ1MDgxM3Q0WmxmVE1nRW0vbGNaT2o0VXZsSzZwcUgrdGFPZ3JySGl1VTJUNzNGNVFFR05SV21sTVN1c25ub1RnRUZFZVpsRXUwWEVqR0NBPT0K"
->>>>>>> 296d9a5c4faa995c77055b3244c659781ffa6aac
+            "url": "https://github.com/0fau/loa-logs/releases/download/v1.9.5-sync/LOA.Logs_1.9.5-sync_x64-setup.nsis.zip",
+            "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVTZlRuK1JUV2dxNHZxMU5RUE93TDBZbEw2K2VwT1hXd0ZLbXNNV3hqcGJmT2x3bTQxWGtqaElENG9LcWw5VHVNZUdBZVVPTjIxOEFxRk15MXFVS0tQWlJUME9Sa0RlZ2c4PQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzE0MTc3NjI3CWZpbGU6TE9BIExvZ3NfMS45LjUtc3luY194NjQtc2V0dXAubnNpcy56aXAKWHlPK1E0S1hUVXZ4UlB0cG95cnpUem1UYUhRVTZXTWRxSFVZY0ZsWjdDb3A1L1d4c3phZk8zWFBUcFRjbmRsWDF3RmthQXNYeGlpcjQzQmxjK211RGc9PQo="
         }
     }
 }
