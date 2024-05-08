@@ -14,6 +14,7 @@ use std::{
 };
 
 use anyhow::Result;
+use auto_launch::AutoLaunch;
 use hashbrown::HashMap;
 use log::{error, info, warn};
 use parser::models::*;
@@ -311,6 +312,8 @@ async fn main() -> Result<()> {
             set_clickthrough,
             get_sync_candidates,
             optimize_database,
+            check_start_on_boot,
+            set_start_on_boot,
         ])
         .run(tauri::generate_context!())
         .expect("error while running application");
@@ -516,6 +519,15 @@ fn setup_db(resource_path: PathBuf) -> Result<(), String> {
     if column_count == 0 {
         conn.execute("ALTER TABLE entity ADD COLUMN engravings TEXT", [])
             .expect("failed to add engravings column");
+    }
+
+    let mut stmt = conn
+        .prepare("SELECT COUNT(*) FROM pragma_table_info('entity') WHERE name='gear_hash'")
+        .unwrap();
+    let column_count: u32 = stmt.query_row([], |row| row.get(0)).unwrap();
+    if column_count == 0 {
+        conn.execute("ALTER TABLE entity ADD COLUMN gear_hash TEXT", [])
+            .expect("failed to add gear_hash column");
     }
 
     update_db(&conn);
@@ -934,7 +946,8 @@ fn load_encounter(window: tauri::Window, id: String) -> Encounter {
         entity_type,
         npc_id,
         character_id,
-        engravings
+        engravings,
+        gear_hash
     FROM entity
     WHERE encounter_id = ?;
     ",
@@ -979,6 +992,7 @@ fn load_encounter(window: tauri::Window, id: String) -> Encounter {
                 npc_id: row.get(12)?,
                 character_id,
                 engraving_data: engravings,
+                gear_hash: row.get(15)?,
                 ..Default::default()
             })
         })
@@ -1437,6 +1451,44 @@ fn disable_aot(window: tauri::Window) {
 fn set_clickthrough(window: tauri::Window, set: bool) {
     if let Some(meter_window) = window.app_handle().get_window(METER_WINDOW_LABEL) {
         meter_window.set_ignore_cursor_events(set).unwrap();
+    }
+}
+
+#[tauri::command]
+fn check_start_on_boot(window: tauri::Window) -> bool {
+    let app_name = window.app_handle().package_info().name.clone();
+    let app_path = match std::env::current_exe() {
+        Ok(path) => path.to_string_lossy().to_string(),
+        Err(e) => {
+            warn!("could not get current exe path: {}", e);
+            return false;
+        }
+    };
+    let auto = AutoLaunch::new(&app_name, &app_path, &[] as &[&str]);
+    auto.is_enabled().unwrap_or(false)
+}
+
+#[tauri::command]
+fn set_start_on_boot(window: tauri::Window, set: bool) {
+    let app_name = window.app_handle().package_info().name.clone();
+    let app_path = match std::env::current_exe() {
+        Ok(path) => path.to_string_lossy().to_string(),
+        Err(e) => {
+            warn!("could not get current exe path: {}", e);
+            return;
+        }
+    };
+    let auto = AutoLaunch::new(&app_name, &app_path, &[] as &[&str]);
+    if set {
+        auto.enable().map_err(|e| {
+            warn!("could not enable auto launch: {}", e);
+        }).ok();
+        info!("enabled start on boot");
+    } else {
+        auto.disable().map_err(|e| {
+            warn!("could not disable auto launch: {}", e);
+        }).ok();
+        info!("disabled start on boot");
     }
 }
 

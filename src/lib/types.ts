@@ -64,6 +64,8 @@ export interface EncounterMisc {
     staggerStats: StaggerStats;
     bossHpLog: { [key: string]: Array<BossHpLog> };
     partyInfo?: PartyInfo;
+    rdpsValid?: boolean;
+    rdpsMessage?: string;
 }
 
 export interface PartyInfo {

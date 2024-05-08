@@ -128,6 +128,7 @@ pub struct EncounterEntity {
     pub damage_stats: DamageStats,
     pub skill_stats: SkillStats,
     pub engraving_data: Option<PlayerEngravings>,
+    pub gear_hash: Option<String>,
 }
 
 #[derive(Debug, Default, Serialize, Deserialize, Clone)]
@@ -345,6 +346,10 @@ pub struct EncounterMisc {
     pub region: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub version: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub rdps_valid: Option<bool>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub rdps_message: Option<String>,
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone, Default)]
@@ -700,6 +705,7 @@ pub struct GeneralSettings {
     pub constant_local_player_color: bool,
     #[serde(default = "default_true")]
     pub boss_only_damage_default_on: bool,
+    pub start_on_boot: bool,
 }
 
 #[derive(Default, Debug, Clone, PartialEq, Serialize, Deserialize)]

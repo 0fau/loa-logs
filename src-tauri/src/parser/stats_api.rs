@@ -2,30 +2,34 @@ use crate::parser::debug_print;
 use crate::parser::encounter_state::EncounterState;
 use crate::parser::entity_tracker::{Entity, EntityTracker};
 use async_recursion::async_recursion;
-use chrono::{DateTime, Utc};
 use hashbrown::{HashMap, HashSet};
 use log::{info, warn};
 use md5::compute;
+use moka::sync::Cache;
 use reqwest::Client;
-use serde::{Deserialize, Serialize};
+use serde::de::{MapAccess, Visitor};
+use serde::{Deserialize, Deserializer, Serialize};
 use serde_json::json;
+use std::fmt;
 use std::sync::atomic::{AtomicBool, Ordering};
-use std::sync::{Arc, Mutex};
+use std::sync::Arc;
+use std::time::Duration;
 use tauri::{Manager, Window, Wry};
 
 const API_URL: &str = "https://inspect.fau.dev/query";
 
 pub struct StatsApi {
     pub client_id: String,
-    cache: Arc<Mutex<HashMap<String, PlayerStats>>>,
-    stats_cache: Arc<Mutex<HashMap<String, Stats>>>,
     cache_status: Arc<AtomicBool>,
     cancellation_flag: Arc<AtomicBool>,
     client: Arc<Client>,
-    hash_cache: Arc<Mutex<HashMap<String, String>>>,
     window: Arc<Window<Wry>>,
     pub valid_zone: bool,
     valid_stats: Option<bool>,
+    stats_cache: Cache<String, PlayerStats>,
+    request_cache: Cache<String, PlayerStats>,
+    inflight_cache: Cache<String, u8>,
+    pub status_message: String,
 }
 
 impl StatsApi {
@@ -33,14 +37,21 @@ impl StatsApi {
         Self {
             client_id: String::new(),
             window: Arc::new(window),
-            cache: Arc::new(Mutex::new(HashMap::new())),
-            stats_cache: Arc::new(Mutex::new(HashMap::new())),
             cache_status: Arc::new(AtomicBool::new(false)),
             cancellation_flag: Arc::new(AtomicBool::new(false)),
             client: Arc::new(Client::new()),
-            hash_cache: Arc::new(Mutex::new(HashMap::new())),
             valid_zone: false,
             valid_stats: None,
+            stats_cache: Cache::builder()
+                .max_capacity(32)
+                .time_to_idle(Duration::from_secs(60 * 10))
+                .build(),
+            request_cache: Cache::builder()
+                .max_capacity(64)
+                .time_to_idle(Duration::from_secs(60 * 30))
+                .build(),
+            inflight_cache: Cache::builder().max_capacity(16).build(),
+            status_message: "".to_string(),
         }
     }
 
@@ -66,67 +77,58 @@ impl StatsApi {
             return;
         }
 
-        let now = Utc::now();
         let player_names = party.iter().flatten().cloned().collect::<HashSet<String>>();
         let mut player_hashes: Vec<PlayerHash> = Vec::new();
-        if let (Ok(mut cache), Ok(mut hash_cache)) = (self.cache.lock(), self.hash_cache.lock()) {
-            for player in player_names.iter() {
-                let entity_id = match state.encounter.entities.get(player) {
-                    Some(entity) => entity.id,
-                    None => continue,
-                };
-                if let Some(entity) = entity_tracker.entities.get(&entity_id) {
-                    if let Some(hash) = self.get_hash(entity) {
-                        if hash_cache
-                            .get(player)
-                            .map_or(false, |cached_hash| cached_hash == &hash)
-                        {
-                            if let Some(cached_player) = cache.get_mut(player) {
-                                cached_player.expiry = now + chrono::Duration::hours(1);
-                                // debug_print(format_args!("cached stats: {:?}", cached_player));
-                            }
-                        } else {
-                            hash_cache.insert(player.clone(), hash.clone());
-                            player_hashes.push(PlayerHash {
-                                name: player.clone(),
-                                hash,
-                            });
-                        }
-                    } else {
-                        debug_print(format_args!(
-                            "missing info for {:?}, could not generate hash",
-                            player
-                        ));
-                        self.broadcast("missing_info");
-                        return;
+        for player in player_names.iter() {
+            let entity_id = match state.encounter.entities.get(player) {
+                Some(entity) => entity.id,
+                None => continue,
+            };
+            if let Some(entity) = entity_tracker.entities.get(&entity_id) {
+                if let Some(hash) = self.get_hash(entity) {
+                    if let Some(cached) = self.request_cache.get(&hash) {
+                        self.stats_cache.insert(player.clone(), cached.clone());
+                    } else if !self.inflight_cache.contains_key(&hash) {
+                        self.inflight_cache.insert(hash.clone(), 0);
+                        player_hashes.push(PlayerHash {
+                            name: player.clone(),
+                            hash,
+                        });
                     }
+                } else {
+                    debug_print(format_args!(
+                        "missing info for {:?}, could not generate hash",
+                        player
+                    ));
+                    self.broadcast("missing_info");
+                    return;
                 }
             }
         }
-
+        
+        if player_hashes.is_empty() {
+            return;
+        }
+        
         debug_print(format_args!(
             "requesting for {}/{} players",
             player_hashes.len(),
             player_names.len()
         ));
         
-        self.remove_expired_from_cache(now);
-
-        if player_hashes.is_empty() {
-            return;
-        }
-
+        self.status_message = "".to_string();
         self.valid_stats = None;
         self.request(region, player_hashes);
     }
 
     fn request(&mut self, region: String, players: Vec<PlayerHash>) {
         let client_clone = Arc::clone(&self.client);
-        let cache_clone = Arc::clone(&self.cache);
         let cache_status = Arc::clone(&self.cache_status);
-        let stats_cache_clone = Arc::clone(&self.stats_cache);
-        let hash_cache_clone = Arc::clone(&self.hash_cache);
         let client_id_clone = self.client_id.clone();
+
+        let stats_cache = self.stats_cache.clone();
+        let request_cache = self.request_cache.clone();
+        let inflight_cache = self.inflight_cache.clone();
 
         self.cancellation_flag.store(true, Ordering::SeqCst);
         let new_cancellation_flag = Arc::new(AtomicBool::new(false));
@@ -140,9 +142,9 @@ impl StatsApi {
                 &client_clone,
                 &window_clone,
                 &region,
-                cache_clone,
-                stats_cache_clone,
-                hash_cache_clone,
+                stats_cache,
+                request_cache,
+                inflight_cache,
                 cache_status,
                 new_cancellation_flag,
                 players,
@@ -154,7 +156,7 @@ impl StatsApi {
 
     pub fn get_hash(&self, player: &Entity) -> Option<String> {
         if player.items.equip_list.is_none()
-            || player.gear_level <= 0.0
+            || player.gear_level < 0.0
             || player.character_id == 0
             || player.class_id == 0
             || player.name == "You"
@@ -195,53 +197,20 @@ impl StatsApi {
         Some(format!("{:x}", compute(data)))
     }
 
-    pub fn get_all_stats(
-        &mut self,
-        difficulty: &str,
-        party: &[Vec<String>],
-    ) -> Option<HashMap<String, PlayerStats>> {
-        if self.valid_stats.is_none() {
-            if let Ok(cache) = self.cache.lock() {
-                self.valid_stats = Some(
-                    party
-                        .iter()
-                        .flatten()
-                        .all(|player| cache.contains_key(player)),
-                );
-            }
-        }
-
-        if !self.valid_difficulty(difficulty) || !self.valid_stats.unwrap_or(false) {
-            return None;
-        }
-
-        if self.cache_status.load(Ordering::Relaxed) {
-            if let Ok(cache) = self.cache.lock() {
-                Some(cache.clone())
-            } else {
-                None
-            }
-        } else {
-            None
-        }
-    }
-
     pub fn get_stats(
         &mut self,
         difficulty: &str,
         party: &[Vec<String>],
         raid_duration: i64,
-    ) -> Option<HashMap<String, Stats>> {
+    ) -> Option<Cache<String, PlayerStats>> {
         if self.valid_stats.is_none() {
-            if let Ok(cache) = self.stats_cache.lock() {
-                let valid = party
-                    .iter()
-                    .flatten()
-                    .all(|player| cache.contains_key(player));
+            let valid = party
+                .iter()
+                .flatten()
+                .all(|player| self.stats_cache.contains_key(player));
 
-                if valid || raid_duration >= 15_000 {
-                    self.valid_stats = Some(valid);
-                }
+            if valid || raid_duration >= 15_000 {
+                self.valid_stats = Some(valid);
             }
         }
 
@@ -256,37 +225,9 @@ impl StatsApi {
         }
 
         if self.cache_status.load(Ordering::Relaxed) {
-            if let Ok(cache) = self.stats_cache.lock() {
-                Some(cache.clone())
-            } else {
-                None
-            }
+            Some(self.stats_cache.clone())
         } else {
             None
-        }
-    }
-
-    fn remove_expired_from_cache(&mut self, now: DateTime<Utc>) {
-        if let (Ok(mut cache), Ok(mut stats_cache), Ok(mut hash_cache)) = (
-            self.cache.lock(),
-            self.stats_cache.lock(),
-            self.hash_cache.lock(),
-        ) {
-            let expired_names: Vec<String> = cache
-                .iter()
-                .filter_map(|(name, stats)| {
-                    if now > stats.expiry {
-                        Some(name.clone())
-                    } else {
-                        None
-                    }
-                })
-                .collect();
-            for name in expired_names.iter() {
-                cache.remove(name);
-                stats_cache.remove(name);
-                hash_cache.remove(name);
-            }
         }
     }
 
@@ -295,7 +236,8 @@ impl StatsApi {
             && self.valid_zone
     }
 
-    pub fn broadcast(&self, message: &str) {
+    pub fn broadcast(&mut self, message: &str) {
+        self.status_message = message.to_string();
         self.window
             .emit("rdps", message)
             .expect("failed to emit rdps message");
@@ -308,9 +250,9 @@ async fn make_request(
     client: &Client,
     window: &Arc<Window<Wry>>,
     region: &str,
-    cache: Arc<Mutex<HashMap<String, PlayerStats>>>,
-    stats_cache: Arc<Mutex<HashMap<String, Stats>>>,
-    hash_cache: Arc<Mutex<HashMap<String, String>>>,
+    stats_cache: Cache<String, PlayerStats>,
+    request_cache: Cache<String, PlayerStats>,
+    inflight_cache: Cache<String, u8>,
     cache_status: Arc<AtomicBool>,
     cancellation: Arc<AtomicBool>,
     players: Vec<PlayerHash>,
@@ -321,7 +263,7 @@ async fn make_request(
             "# of retries exceeded, failed to fetch player stats for {:?}",
             players
         );
-        remove_from_hash_cache(&hash_cache, &players);
+        remove_from_in_flight_cache(&inflight_cache, &players);
         window
             .emit("rdps", "request_failed")
             .expect("failed to emit rdps message");
@@ -342,32 +284,18 @@ async fn make_request(
     match client.post(API_URL).json(&request_body).send().await {
         Ok(response) => match response.json::<HashMap<String, PlayerStats>>().await {
             Ok(data) => {
-                let mut missing_players: Vec<PlayerHash> = Vec::new();
-                if let (Ok(mut cache_clone), Ok(mut stats_cache_clone)) =
-                    (cache.lock(), stats_cache.lock())
-                {
-                    missing_players = players
-                        .iter()
-                        .filter(|player| !data.contains_key(&player.name))
-                        .cloned()
-                        .collect();
+                let missing_players: Vec<PlayerHash> = players
+                    .iter()
+                    .filter(|player| !data.contains_key(&player.name))
+                    .cloned()
+                    .collect();
 
-                    let now = Utc::now();
-                    for (name, mut stats) in data {
-                        stats_cache_clone.insert(
-                            name.clone(),
-                            Stats {
-                                crit: stats.stats.get(&0).cloned().unwrap_or_default(),
-                                spec: stats.stats.get(&1).cloned().unwrap_or_default(),
-                                atk_power: stats.stats.get(&4).cloned().unwrap_or_default(),
-                                add_dmg: stats.stats.get(&5).cloned().unwrap_or_default(),
-                            },
-                        );
-                        stats.expiry = now + chrono::Duration::hours(1);
-                        cache_clone.insert(name, stats);
-                    }
-                    // debug_print(format_args!("{:?}", stats_cache_clone));
+                for (name, stats) in data {
+                    inflight_cache.remove(&stats.hash);
+                    stats_cache.insert(name.clone(), stats.clone());
+                    request_cache.insert(stats.hash.clone(), stats);
                 }
+                // debug_print(format_args!("{:?}", stats_cache_clone));
 
                 if missing_players.is_empty() {
                     debug_print(format_args!("received player stats"));
@@ -382,13 +310,13 @@ async fn make_request(
                         .expect("failed to emit rdps message");
                     if cancellation.load(Ordering::SeqCst) {
                         debug_print(format_args!("request cancelled"));
-                        remove_from_hash_cache(&hash_cache, &missing_players);
+                        remove_from_in_flight_cache(&inflight_cache, &players);
                         return;
                     }
-                    tokio::time::sleep(core::time::Duration::from_secs(5)).await;
+                    tokio::time::sleep(Duration::from_secs(5)).await;
                     if cancellation.load(Ordering::SeqCst) {
                         debug_print(format_args!("request cancelled"));
-                        remove_from_hash_cache(&hash_cache, &missing_players);
+                        remove_from_in_flight_cache(&inflight_cache, &players);
                         return;
                     }
                     debug_print(format_args!(
@@ -403,9 +331,9 @@ async fn make_request(
                         client,
                         window,
                         region,
-                        Arc::clone(&cache),
-                        Arc::clone(&stats_cache),
-                        Arc::clone(&hash_cache),
+                        stats_cache,
+                        request_cache,
+                        inflight_cache,
                         cache_status,
                         cancellation,
                         missing_players,
@@ -426,32 +354,32 @@ async fn make_request(
     }
 }
 
-fn remove_from_hash_cache(hash_cache: &Arc<Mutex<HashMap<String, String>>>, player: &[PlayerHash]) {
-    if let Ok(mut hash_cache) = hash_cache.lock() {
-        for player in player.iter() {
-            hash_cache.remove(&player.name);
-        }
+fn remove_from_in_flight_cache(in_flight_cache: &Cache<String, u8>, players: &[PlayerHash]) {
+    for player in players.iter() {
+        in_flight_cache.remove(&player.hash);
     }
 }
 
+// #[derive(Debug, Default, Clone)]
+// pub struct Stats {
+//     pub crit: u32,
+//     pub spec: u32,
+//     pub atk_power: u32,
+//     pub add_dmg: u32,
+// }
+
 #[derive(Debug, Default, Clone)]
-pub struct Stats {
-    pub crit: u32,
-    pub spec: u32,
-    pub atk_power: u32,
-    pub add_dmg: u32,
-}
+pub struct Stats(pub Vec<u32>);
 
 #[derive(Debug, Default, Clone, Deserialize)]
 #[serde(rename_all = "camelCase", default)]
 pub struct PlayerStats {
     pub name: String,
-    pub stats: HashMap<u8, u32>,
+    pub hash: String,
+    pub stats: Stats,
     pub elixirs: Option<Vec<ElixirData>>,
     pub gems: Option<Vec<GemData>>,
     pub engravings: Option<Vec<Engraving>>,
-    #[serde(skip)]
-    pub expiry: DateTime<Utc>,
 }
 
 #[derive(Debug, Default, Clone, Deserialize)]
@@ -490,4 +418,36 @@ pub struct Engraving {
 pub struct PlayerHash {
     pub name: String,
     pub hash: String,
+}
+
+struct StatsVisitor;
+
+impl<'de> Visitor<'de> for StatsVisitor {
+    type Value = Stats;
+
+    fn expecting(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
+        formatter.write_str("a map with integer keys")
+    }
+
+    fn visit_map<A>(self, mut map: A) -> Result<Self::Value, A::Error>
+    where
+        A: MapAccess<'de>,
+    {
+        let mut stats = vec![0; 6];
+        while let Some((key, value)) = map.next_entry::<usize, u32>()? {
+            if key < stats.len() {
+                stats[key] = value;
+            }
+        }
+        Ok(Stats(stats))
+    }
+}
+
+impl<'de> Deserialize<'de> for Stats {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: Deserializer<'de>,
+    {
+        deserializer.deserialize_map(StatsVisitor)
+    }
 }

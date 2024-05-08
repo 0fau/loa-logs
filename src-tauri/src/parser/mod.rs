@@ -208,7 +208,8 @@ pub fn start(
         if save.load(Ordering::Relaxed) {
             save.store(false, Ordering::Relaxed);
             state.party_info = update_party(&party_tracker, &entity_tracker);
-            let player_stats = stats_api.get_all_stats(&state.raid_difficulty, &state.party_info);
+            let player_stats = stats_api.get_stats(&state.raid_difficulty, &state.party_info, 0);
+            state.rdps_message = stats_api.status_message.clone();
             state.save_to_db(player_stats, true);
             state.saved = true;
             state.resetting = true;
@@ -294,7 +295,8 @@ pub fn start(
                     party_cache = None;
                     party_map_cache = HashMap::new();
                     let entity = entity_tracker.init_env(pkt);
-                    let player_stats = stats_api.get_all_stats(&state.raid_difficulty, &state.party_info);
+                    let player_stats =
+                        stats_api.get_stats(&state.raid_difficulty, &state.party_info, 0);
                     state.on_init_env(entity, player_stats);
                 }
             }
@@ -516,8 +518,7 @@ pub fn start(
                 }
             }
             Pkt::RaidBossKillNotify => {
-                let player_stats = stats_api.get_all_stats(&state.raid_difficulty, &state.party_info);
-                state.on_phase_transition(1, player_stats);
+                state.on_phase_transition(1, &mut stats_api);
                 state.raid_clear = true;
                 debug_print(format_args!("phase: 1 - RaidBossKillNotify"));
             }
@@ -528,8 +529,7 @@ pub fn start(
                 } else {
                     update_party(&party_tracker, &entity_tracker)
                 };
-                let player_stats = stats_api.get_all_stats(&state.raid_difficulty, &state.party_info);
-                state.on_phase_transition(0, player_stats);
+                state.on_phase_transition(0, &mut stats_api);
                 raid_end_cd = Instant::now();
                 debug_print(format_args!("phase: 0 - RaidResult"));
             }
@@ -609,7 +609,13 @@ pub fn start(
                         .borrow()
                         .get_local_character_id(entity_tracker.local_entity_id);
                     let target_count = pkt.skill_damage_abnormal_move_events.len() as i32;
-                    let player_stats = stats_api.get_stats(&state.raid_difficulty, &state.party_info, now - state.encounter.fight_start);
+                    let duration = if state.encounter.fight_start > 0 {
+                        now - state.encounter.fight_start
+                    } else {
+                        0
+                    };
+                    let player_stats =
+                        stats_api.get_stats(&state.raid_difficulty, &state.party_info, duration);
 
                     for event in pkt.skill_damage_abnormal_move_events.iter() {
                         let target_entity =
@@ -659,8 +665,13 @@ pub fn start(
                         .borrow()
                         .get_local_character_id(entity_tracker.local_entity_id);
                     let target_count = pkt.skill_damage_events.len() as i32;
-                    let player_stats = stats_api.get_stats(&state.raid_difficulty, &state.party_info, now - state.encounter.fight_start);
-
+                    let duration = if state.encounter.fight_start > 0 {
+                        now - state.encounter.fight_start
+                    } else {
+                        0
+                    };
+                    let player_stats =
+                        stats_api.get_stats(&state.raid_difficulty, &state.party_info, duration);
                     for event in pkt.skill_damage_events.iter() {
                         let target_entity = entity_tracker.get_or_create_entity(event.target_id);
                         // source_entity is to determine battle item
@@ -784,8 +795,7 @@ pub fn start(
                     || state.encounter.fight_start == 0
                     || state.encounter.current_boss_name == "Saydon"
                 {
-                    let player_stats = stats_api.get_all_stats(&state.raid_difficulty, &state.party_info);
-                    state.on_phase_transition(3, player_stats);
+                    state.on_phase_transition(3, &mut stats_api);
                     debug_print(format_args!(
                         "phase: 3 - resetting encounter - TriggerBossBattleStatus"
                     ));
@@ -804,8 +814,7 @@ pub fn start(
                                 update_party(&party_tracker, &entity_tracker)
                             };
                             state.raid_clear = true;
-                            let player_stats = stats_api.get_all_stats(&state.raid_difficulty, &state.party_info);
-                            state.on_phase_transition(2, player_stats);
+                            state.on_phase_transition(2, &mut stats_api);
                             raid_end_cd = Instant::now();
                             debug_print(format_args!("phase: 2 - clear - TriggerStartNotify"));
                         }
@@ -817,8 +826,7 @@ pub fn start(
                                 update_party(&party_tracker, &entity_tracker)
                             };
                             state.raid_clear = false;
-                            let player_stats = stats_api.get_all_stats(&state.raid_difficulty, &state.party_info);
-                            state.on_phase_transition(4, player_stats);
+                            state.on_phase_transition(4, &mut stats_api);
                             raid_end_cd = Instant::now();
                             debug_print(format_args!("phase: 4 - wipe - TriggerStartNotify"));
                         }
