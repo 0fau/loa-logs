@@ -1,6 +1,7 @@
 use crate::parser::debug_print;
 use crate::parser::encounter_state::EncounterState;
 use crate::parser::entity_tracker::Entity;
+use crate::parser::models::EntityType;
 use async_recursion::async_recursion;
 use chrono::{DateTime, Utc};
 use hashbrown::HashMap;
@@ -12,7 +13,6 @@ use serde::de::{MapAccess, Visitor};
 use serde::{Deserialize, Deserializer, Serialize};
 use serde_json::json;
 use std::fmt;
-use std::sync::atomic::AtomicBool;
 use std::sync::Arc;
 use std::time::Duration;
 use tauri::{Manager, Window, Wry};
@@ -41,17 +41,11 @@ impl StatsApi {
             client: Arc::new(Client::new()),
             valid_zone: false,
             valid_stats: None,
-            stats_cache: Cache::builder()
-                .max_capacity(32)
-                .time_to_idle(Duration::from_secs(60 * 10))
-                .build(),
-            request_cache: Cache::builder()
-                .max_capacity(64)
-                .time_to_idle(Duration::from_secs(60 * 30))
-                .build(),
+            stats_cache: Cache::builder().max_capacity(32).build(),
+            request_cache: Cache::builder().max_capacity(64).build(),
             inflight_cache: Cache::builder()
                 .max_capacity(16)
-                .time_to_live(Duration::from_secs(60))
+                .time_to_live(Duration::from_secs(30))
                 .build(),
             cancel_queue: Cache::builder()
                 .max_capacity(16)
@@ -62,12 +56,7 @@ impl StatsApi {
         }
     }
 
-    pub fn sync(
-        &mut self,
-        player: &Entity,
-        state: &EncounterState,
-        cached_region: &HashMap<u64, String>,
-    ) {
+    pub fn sync(&mut self, player: &Entity, state: &EncounterState) {
         if !self.valid_difficulty(&state.raid_difficulty) {
             self.broadcast("invalid_zone");
             return;
@@ -75,11 +64,11 @@ impl StatsApi {
 
         let region = match state.region.as_ref() {
             Some(region) => region.clone(),
-            None => cached_region.get(&0).cloned().unwrap_or_default(),
+            None => "".to_string(),
         };
 
         if region.is_empty() {
-            debug_print(format_args!("party info is empty or region is not set"));
+            debug_print(format_args!("region is not set"));
             self.broadcast("missing_info");
             return;
         }
@@ -187,19 +176,20 @@ impl StatsApi {
 
     pub fn get_stats(
         &mut self,
-        difficulty: &str,
-        party: &[Vec<String>],
+        state: &EncounterState,
         raid_duration: i64,
     ) -> Option<Cache<String, PlayerStats>> {
-        if !self.valid_difficulty(difficulty) {
+        if !self.valid_difficulty(&state.raid_difficulty) {
             return None;
         }
 
         if self.valid_stats.is_none() {
-            let valid = party
+            let valid = state
+                .encounter
+                .entities
                 .iter()
-                .flatten()
-                .all(|player| self.stats_cache.contains_key(player));
+                .filter(|(_, e)| e.entity_type == EntityType::PLAYER)
+                .all(|(name, _)| self.stats_cache.contains_key(name));
 
             if valid || raid_duration >= 15_000 {
                 self.valid_stats = Some(valid);
@@ -221,7 +211,7 @@ impl StatsApi {
 
     fn valid_difficulty(&self, difficulty: &str) -> bool {
         self.valid_zone
-            && (difficulty == "Normal" || difficulty == "Hard" || difficulty == "The First")
+            && (difficulty == "Normal" || difficulty == "Hard" || difficulty == "The First" || difficulty == "Trial")
     }
 
     pub fn broadcast(&mut self, message: &str) {
@@ -287,7 +277,7 @@ async fn make_request(
                     window
                         .emit("rdps", "request_failed_retrying")
                         .expect("failed to emit rdps message");
-                    for _ in 0..50 {
+                    for _ in 0..30 {
                         if let Some(cancel_hash) = cancel_queue.get(&player.name) {
                             if cancel_hash != player.hash {
                                 cancel_queue.invalidate(&player.name);

@@ -395,7 +395,7 @@
                     on:click={damageTab}>
                     Damage
                 </button>
-                {#if anyRdpsData}
+                {#if anyRdpsData || $rdpsEventDetails !== ""}
                     <button
                         class="flex-shrink-0 rounded-sm px-3 py-1"
                         class:bg-accent-900={tab === MeterTab.RDPS}

@@ -11,7 +11,7 @@ mod utils;
 use crate::parser::encounter_state::EncounterState;
 use crate::parser::entity_tracker::{get_current_and_max_hp, EntityTracker};
 use crate::parser::id_tracker::IdTracker;
-use crate::parser::models::{DamageData, EntityType, Identity, Stagger, AWS_REGIONS, VALID_ZONES};
+use crate::parser::models::{DamageData, EntityType, Identity, Stagger, VALID_ZONES};
 use crate::parser::party_tracker::PartyTracker;
 use crate::parser::stats_api::StatsApi;
 use crate::parser::status_tracker::{
@@ -22,17 +22,14 @@ use crate::parser::utils::get_class_from_id;
 use anyhow::Result;
 use chrono::Utc;
 use hashbrown::HashMap;
-use ipnet::Ipv4Net;
 use log::{info, warn};
 use meter_core::packets::definitions::*;
 use meter_core::packets::opcodes::Pkt;
 use meter_core::{start_capture, start_raw_capture};
 use std::cell::RefCell;
 use std::collections::BTreeMap;
-use std::net::Ipv4Addr;
 use std::path::PathBuf;
 use std::rc::Rc;
-use std::str::FromStr;
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::Arc;
 use std::thread;
@@ -59,6 +56,9 @@ pub fn start(
     );
     let mut stats_api = StatsApi::new(window.clone());
     let mut state = EncounterState::new(window.clone());
+    let mut resource_path = window.app_handle().path_resolver().resource_dir().unwrap();
+    resource_path.push("current_region");
+    let region_file_path = resource_path.to_string_lossy();
     let rx = if raw_socket {
         if !meter_core::check_is_admin() {
             warn!("Not running as admin, cannot use raw socket");
@@ -68,7 +68,7 @@ pub fn start(
             }
         }
         meter_core::add_firewall()?;
-        match start_raw_capture(ip, port) {
+        match start_raw_capture(ip, port, region_file_path.to_string()) {
             Ok(rx) => rx,
             Err(e) => {
                 warn!("Error starting capture: {}", e);
@@ -76,7 +76,7 @@ pub fn start(
             }
         }
     } else {
-        match start_capture(ip, port) {
+        match start_capture(ip, port, region_file_path.to_string()) {
             Ok(rx) => rx,
             Err(e) => {
                 warn!("Error starting capture: {}", e);
@@ -128,6 +128,8 @@ pub fn start(
             stats_api.client_id = client_id.clone();
         }
     }
+
+    get_and_set_region(region_file_path.as_ref(), &mut state);
 
     let emit_details = Arc::new(AtomicBool::new(false));
 
@@ -208,7 +210,7 @@ pub fn start(
         if save.load(Ordering::Relaxed) {
             save.store(false, Ordering::Relaxed);
             state.party_info = update_party(&party_tracker, &entity_tracker);
-            let player_stats = stats_api.get_stats(&state.raid_difficulty, &state.party_info, 0);
+            let player_stats = stats_api.get_stats(&state, 0);
             state.rdps_message = stats_api.status_message.clone();
             state.save_to_db(player_stats, true);
             state.saved = true;
@@ -295,10 +297,17 @@ pub fn start(
                     party_cache = None;
                     party_map_cache = HashMap::new();
                     let entity = entity_tracker.init_env(pkt);
-                    let player_stats =
-                        stats_api.get_stats(&state.raid_difficulty, &state.party_info, 0);
+                    let player_stats = stats_api.get_stats(&state, 0);
                     state.on_init_env(entity, player_stats);
                     stats_api.valid_zone = false;
+                    match std::fs::read_to_string(region_file_path.to_string()) {
+                        Ok(region) => {
+                            state.region = Some(region);
+                        }
+                        Err(e) => {
+                            warn!("failed to read region file. {}", e);
+                        }
+                    }
                 }
             }
             Pkt::InitPC => {
@@ -330,14 +339,6 @@ pub fn start(
             Pkt::MigrationExecute => {
                 if let Some(pkt) = parse_pkt(&data, PKTMigrationExecute::new, "PKTMigrationExecute")
                 {
-                    debug_print(format_args!("server ip: {}", pkt.server_addr));
-                    let ip_without_port = pkt.server_addr.split(':').collect::<Vec<_>>()[0];
-                    let region = get_aws_region_from_ip(ip_without_port);
-                    debug_print(format_args!("region: {:?}", region));
-                    // cache player region as first in the list
-                    local_players.insert(0, region.clone().unwrap_or_default());
-                    write_local_players(&local_players, &local_player_path)?;
-                    state.region = region;
                     entity_tracker.migration_execute(pkt);
                 }
             }
@@ -353,6 +354,12 @@ pub fn start(
                         entity.id,
                         entity.character_id
                     ));
+                    if stats_api.valid_zone {
+                        stats_api.sync(&entity, &state);
+                        if let Some(local_player) = entity_tracker.get_entity_ref(entity_tracker.local_entity_id) {
+                            stats_api.sync(local_player, &state);
+                        }
+                    }
                     state.on_new_pc(entity, hp, max_hp);
                 }
             }
@@ -468,7 +475,7 @@ pub fn start(
                     if left_workshop {
                         if let Some(entity_id) = id_tracker.borrow().get_entity_id(character_id) {
                             if let Some(entity) = entity_tracker.get_entity_ref(entity_id) {
-                                stats_api.sync(entity, &state, &local_players);
+                                stats_api.sync(entity, &state);
                             }
                         }
                     }
@@ -505,7 +512,7 @@ pub fn start(
                 if let Some(pkt) = parse_pkt(&data, PKTRaidBegin::new, "PKTRaidBegin") {
                     debug_print(format_args!("raid begin: {}", pkt.raid_id));
                     match pkt.raid_id {
-                        308226 | 308227 => {
+                        308226 | 308227 | 308239 | 308339 => {
                             state.raid_difficulty = "Trial".to_string();
                         }
                         308428 | 308429 | 308420 | 308410 | 308411 | 308414 | 308422 | 308424
@@ -618,9 +625,7 @@ pub fn start(
                     } else {
                         0
                     };
-                    let player_stats =
-                        stats_api.get_stats(&state.raid_difficulty, &state.party_info, duration);
-
+                    let player_stats = stats_api.get_stats(&state, duration);
                     for event in pkt.skill_damage_abnormal_move_events.iter() {
                         let target_entity =
                             entity_tracker.get_or_create_entity(event.skill_damage_event.target_id);
@@ -674,8 +679,7 @@ pub fn start(
                     } else {
                         0
                     };
-                    let player_stats =
-                        stats_api.get_stats(&state.raid_difficulty, &state.party_info, duration);
+                    let player_stats = stats_api.get_stats(&state, duration);
                     for event in pkt.skill_damage_events.iter() {
                         let target_entity = entity_tracker.get_or_create_entity(event.target_id);
                         // source_entity is to determine battle item
@@ -771,7 +775,7 @@ pub fn start(
                         );
                     if left_workshop {
                         if let Some(entity) = entity_tracker.get_entity_ref(pkt.object_id) {
-                            stats_api.sync(entity, &state, &local_players);
+                            stats_api.sync(entity, &state);
                         }
                     }
                     if is_shield {
@@ -1097,35 +1101,15 @@ fn write_local_players(local_players: &HashMap<u64, String>, path: &PathBuf) -> 
     Ok(())
 }
 
-fn get_aws_region_from_ip(ip: &str) -> Option<String> {
-    let ip: Ipv4Addr = ip.parse().unwrap();
-
-    for prefix in AWS_REGIONS.prefixes.iter().filter(|p| {
-        p.region == "us-east-1"
-            || p.region == "us-west-2"
-            || p.region == "eu-central-1"
-            || p.region == "sa-east-1"
-    }) {
-        let net = match Ipv4Net::from_str(&prefix.ip_prefix) {
-            Ok(net) => net,
-            Err(_) => continue,
-        };
-
-        if net.contains(&ip) {
-            if prefix.region == "us-east-1" {
-                return Some("NAE".to_string());
-            } else if prefix.region == "us-west-2" {
-                return Some("NAW".to_string());
-            } else if prefix.region == "eu-central-1" {
-                return Some("EUC".to_string());
-            } else if prefix.region == "sa-east-1" {
-                return Some("SA".to_string());
-            }
+fn get_and_set_region(path: &str, state: &mut EncounterState) {
+    match std::fs::read_to_string(path) {
+        Ok(region) => {
+            state.region = Some(region);
+        }
+        Err(e) => {
+            warn!("failed to read region file. {}", e);
         }
     }
-
-    warn!("Could not find region for ip: {}", ip);
-    None
 }
 
 fn parse_pkt<T, F>(data: &[u8], new_fn: F, pkt_name: &str) -> Option<T>

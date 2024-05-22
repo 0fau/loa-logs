@@ -32,13 +32,13 @@ tokio = { version = "1.29.1", features = ["rt", "macros"] }
 meter-core = { path = "C:\\Users\\Kevin\\IdeaProjects\\meter-core-rs" }
 log = "0.4.18"
 flexi_logger = { version = "0.28.0", default-features = false }
-ipnet = "2.9.0"
 reqwest = { version = "0.12", features = ["json"] }
 md5 = "0.7.0"
 async-recursion = "1.1.0"
 uuid = { version = "1.8.0", features = ["v4"] }
 moka = { version = "0.12.7", features = ["sync"] }
 auto-launch = "0.5.0"
+rsntp = { version = "4.0.0", default-features = false, features = ["chrono"]  }
 
 [features]
 # by default Tauri runs in production mode
