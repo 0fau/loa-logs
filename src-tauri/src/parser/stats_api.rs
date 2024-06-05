@@ -3,9 +3,8 @@ use crate::parser::encounter_state::EncounterState;
 use crate::parser::entity_tracker::Entity;
 use crate::parser::models::EntityType;
 use async_recursion::async_recursion;
-use chrono::{DateTime, Utc};
 use hashbrown::HashMap;
-use log::warn;
+use log::{info, warn};
 use md5::compute;
 use moka::sync::Cache;
 use reqwest::Client;
@@ -17,22 +16,21 @@ use std::sync::Arc;
 use std::time::Duration;
 use tauri::{Manager, Window, Wry};
 
-const API_URL: &str = "https://inspect.fau.dev/query";
+pub const API_URL: &str = "https://inspect.fau.dev";
 
 pub struct StatsApi {
     pub client_id: String,
-    client: Arc<Client>,
+    client: Client,
     window: Arc<Window<Wry>>,
     pub valid_zone: bool,
-    valid_stats: Option<bool>,
     stats_cache: Cache<String, PlayerStats>,
     request_cache: Cache<String, PlayerStats>,
     inflight_cache: Cache<String, u8>,
     cancel_queue: Cache<String, String>,
-    pub status_message: String,
-    last_broadcast: DateTime<Utc>,
-    
+
     region_file_path: String,
+
+    pub region: String,
 }
 
 impl StatsApi {
@@ -40,26 +38,32 @@ impl StatsApi {
         Self {
             client_id: String::new(),
             window: Arc::new(window),
-            client: Arc::new(Client::new()),
+            client: Client::new(),
             valid_zone: false,
-            valid_stats: None,
             stats_cache: Cache::builder().max_capacity(32).build(),
             request_cache: Cache::builder().max_capacity(64).build(),
             inflight_cache: Cache::builder()
                 .max_capacity(16)
-                .time_to_live(Duration::from_secs(30))
+                .time_to_live(Duration::from_secs(10))
                 .build(),
             cancel_queue: Cache::builder()
                 .max_capacity(16)
-                .time_to_live(Duration::from_secs(30))
+                .time_to_live(Duration::from_secs(10))
                 .build(),
-            status_message: "".to_string(),
-            last_broadcast: Utc::now(),
             region_file_path,
+
+            region: "".to_string(),
         }
     }
 
     pub fn sync(&mut self, player: &Entity, state: &EncounterState) {
+        if state.encounter.fight_start > 0
+            && state.encounter.last_combat_packet - state.encounter.fight_start > 1_000
+        {
+            debug_print(format_args!("fight in progress, ignoring sync"));
+            return;
+        }
+
         if !self.valid_difficulty(&state.raid_difficulty) {
             self.broadcast("invalid_zone");
             return;
@@ -67,12 +71,10 @@ impl StatsApi {
 
         let region = match state.region.as_ref() {
             Some(region) => region.clone(),
-            None => {
-                std::fs::read_to_string(&self.region_file_path).unwrap_or_else(|e| {
-                    warn!("failed to read region file. {}", e);
-                    "".to_string()
-                })
-            },
+            None => std::fs::read_to_string(&self.region_file_path).unwrap_or_else(|e| {
+                warn!("failed to read region file. {}", e);
+                "".to_string()
+            }),
         };
 
         if region.is_empty() {
@@ -81,11 +83,18 @@ impl StatsApi {
             return;
         }
 
-        self.status_message = "".to_string();
-        self.valid_stats = None;
+        self.region = region.clone();
+
+        if player.entity_type != EntityType::PLAYER {
+            warn!("invalid entity type: {:?}", player);
+            return;
+        }
+
         let player_hash = if let Some(hash) = self.get_hash(player) {
             if let Some(cached) = self.request_cache.get(&hash) {
+                debug_print(format_args!("using cached stats for {:?}", player.name));
                 self.stats_cache.insert(player.name.clone(), cached.clone());
+                self.cancel_queue.insert(player.name.clone(), hash.clone());
                 return;
             } else if !self.inflight_cache.contains_key(&hash) {
                 self.inflight_cache.insert(hash.clone(), 0);
@@ -99,10 +108,7 @@ impl StatsApi {
                 return;
             }
         } else {
-            warn!(
-                "missing info for {:?}, could not generate hash",
-                player
-            );
+            warn!("missing info for {:?}, could not generate hash", player);
             self.broadcast("missing_info");
             return;
         };
@@ -111,7 +117,7 @@ impl StatsApi {
     }
 
     fn request(&mut self, region: String, player: PlayerHash) {
-        let client_clone = Arc::clone(&self.client);
+        let client_clone = self.client.clone();
         let client_id_clone = self.client_id.clone();
 
         let stats_cache = self.stats_cache.clone();
@@ -134,14 +140,14 @@ impl StatsApi {
                 cancel_queue,
                 player,
                 0,
+                false,
             )
             .await;
         });
     }
 
     pub fn get_hash(&self, player: &Entity) -> Option<String> {
-        if player.items.equip_list.is_none()
-            || player.gear_level < 0.0
+        if player.gear_level < 0.0
             || player.character_id == 0
             || player.class_id == 0
             || player.name == "You"
@@ -166,6 +172,7 @@ impl StatsApi {
         }
 
         if equip_data[..26].iter().all(|&x| x == 0) {
+            warn!("missing equipment data for {:?}", player);
             return Some("".to_string());
         }
 
@@ -182,35 +189,8 @@ impl StatsApi {
         Some(format!("{:x}", compute(data)))
     }
 
-    pub fn get_stats(
-        &mut self,
-        state: &EncounterState,
-        raid_duration: i64,
-    ) -> Option<Cache<String, PlayerStats>> {
+    pub fn get_stats(&mut self, state: &EncounterState) -> Option<Cache<String, PlayerStats>> {
         if !self.valid_difficulty(&state.raid_difficulty) {
-            return None;
-        }
-
-        if self.valid_stats.is_none() {
-            let valid = state
-                .encounter
-                .entities
-                .iter()
-                .filter(|(_, e)| e.entity_type == EntityType::PLAYER)
-                .all(|(name, _)| self.stats_cache.contains_key(name));
-
-            if valid || raid_duration >= 15_000 {
-                self.valid_stats = Some(valid);
-            }
-        }
-
-        if !self.valid_stats.unwrap_or(false) {
-            let now = Utc::now();
-            let duration = now.signed_duration_since(self.last_broadcast).num_seconds();
-            if self.valid_stats.is_some() && duration >= 10 {
-                self.broadcast("invalid_stats");
-                self.last_broadcast = now;
-            }
             return None;
         }
 
@@ -219,14 +199,79 @@ impl StatsApi {
 
     fn valid_difficulty(&self, difficulty: &str) -> bool {
         self.valid_zone
-            && (difficulty == "Normal" || difficulty == "Hard" || difficulty == "The First" || difficulty == "Trial")
+            && (difficulty == "Normal"
+                || difficulty == "Hard"
+                || difficulty == "The First"
+                || difficulty == "Trial")
     }
 
     pub fn broadcast(&mut self, message: &str) {
-        self.status_message = message.to_string();
         self.window
             .emit("rdps", message)
             .expect("failed to emit rdps message");
+    }
+
+    pub fn send_raid_info(&mut self, state: &EncounterState) {
+        if !((self.valid_zone && (state.raid_difficulty == "Normal" || state.raid_difficulty == "Hard"))
+            || (state.raid_difficulty == "Inferno"
+                || state.raid_difficulty == "Trial"
+                || state.raid_difficulty == "The First"))
+        {
+            debug_print(format_args!("not valid for raid info"));
+            return;
+        }
+        
+        let players: HashMap<String, u64> = state
+            .encounter
+            .entities
+            .iter()
+            .filter_map(|(_, e)| {
+                if e.entity_type == EntityType::PLAYER {
+                    Some((e.name.clone(), e.character_id))
+                } else {
+                    None
+                }
+            })
+            .collect();
+        
+        if players.len() > 16 {
+            warn!("invalid zone. num players: {}", players.len());
+            return;
+        }
+
+        let client = self.client.clone();
+        let client_id = self.client_id.clone();
+        let version = self.window.app_handle().package_info().version.to_string();
+        let region = self.region.clone();
+        let boss_name = state.encounter.current_boss_name.clone();
+        let difficulty = state.raid_difficulty.clone();
+        let cleared = state.raid_clear;
+
+        tokio::task::spawn(async move {
+            let request_body = json!({
+                "id": client_id,
+                "version": version,
+                "region": region,
+                "boss": boss_name,
+                "difficulty": difficulty,
+                "characters": players,
+                "cleared": cleared,
+            });
+
+            match client
+                .post(format!("{API_URL}/raid"))
+                .json(&request_body)
+                .send()
+                .await
+            {
+                Ok(_) => {
+                    debug_print(format_args!("sent raid info"));
+                }
+                Err(e) => {
+                    warn!("failed to send raid info: {:?}", e);
+                }
+            }
+        });
     }
 }
 
@@ -240,20 +285,29 @@ async fn make_request(
     request_cache: Cache<String, PlayerStats>,
     inflight_cache: Cache<String, u8>,
     cancel_queue: Cache<String, String>,
-    player: PlayerHash,
+    mut player: PlayerHash,
     current_retries: usize,
+    mut final_attempt: bool,
 ) {
-    if current_retries >= 20 {
+    if current_retries >= 12 {
         warn!(
             "# of retries exceeded, failed to fetch player stats for {:?}",
             player
         );
         inflight_cache.invalidate(&player.hash);
         cancel_queue.invalidate(&player.name);
-        window
-            .emit("rdps", "request_failed")
-            .expect("failed to emit rdps message");
-        return;
+        
+        if !final_attempt {
+            final_attempt = true;
+            player.hash = "".to_string();
+            warn!("final attempt for {:?} without hash", player.name);
+        } else {
+            window
+                .emit("rdps", "request_failed")
+                .expect("failed to emit rdps message");
+            warn!("unable to find player {:?} on {:?}", player.name, region);
+            return;
+        }
     }
 
     let version = window.app_handle().package_info().version.to_string();
@@ -267,7 +321,12 @@ async fn make_request(
     // debug_print(format_args!("{:?}", players));
     // println!("{:?}", request_body);
 
-    match client.post(API_URL).json(&request_body).send().await {
+    match client
+        .post(format!("{API_URL}/query"))
+        .json(&request_body)
+        .send()
+        .await
+    {
         Ok(response) => match response.json::<HashMap<String, PlayerStats>>().await {
             Ok(data) => {
                 if data.contains_key(&player.name) {
@@ -285,7 +344,7 @@ async fn make_request(
                     window
                         .emit("rdps", "request_failed_retrying")
                         .expect("failed to emit rdps message");
-                    for _ in 0..30 {
+                    for _ in 0..20 {
                         if let Some(cancel_hash) = cancel_queue.get(&player.name) {
                             if cancel_hash != player.hash {
                                 cancel_queue.invalidate(&player.name);
@@ -298,11 +357,11 @@ async fn make_request(
                         }
                         tokio::time::sleep(Duration::from_millis(100)).await;
                     }
-                    debug_print(format_args!(
+                    warn!(
                         "missing stats for: {:?}, retrying, attempt {}",
                         player,
                         current_retries + 1
-                    ));
+                    );
                     // retry request with missing players
                     // until we receive stats for all players
                     make_request(
@@ -316,6 +375,7 @@ async fn make_request(
                         cancel_queue,
                         player,
                         current_retries + 1,
+                        final_attempt,
                     )
                     .await;
                 }
@@ -333,16 +393,15 @@ async fn make_request(
     }
 }
 
-// #[derive(Debug, Default, Clone)]
-// pub struct Stats {
-//     pub crit: u32,
-//     pub spec: u32,
-//     pub atk_power: u32,
-//     pub add_dmg: u32,
-// }
-
 #[derive(Debug, Default, Clone)]
-pub struct Stats(pub Vec<u32>);
+pub struct Stats {
+    pub crit: u32,
+    pub spec: u32,
+    pub swift: u32,
+    pub exp: u32,
+    pub atk_power: u32,
+    pub add_dmg: u32,
+}
 
 #[derive(Debug, Default, Clone, Deserialize)]
 #[serde(rename_all = "camelCase", default)]
@@ -406,13 +465,23 @@ impl<'de> Visitor<'de> for StatsVisitor {
     where
         A: MapAccess<'de>,
     {
-        let mut stats = vec![0; 6];
+        let mut stats = Stats::default();
         while let Some((key, value)) = map.next_entry::<usize, u32>()? {
-            if key < stats.len() {
-                stats[key] = value;
+            if key == 0 {
+                stats.crit = value;
+            } else if key == 1 {
+                stats.spec = value;
+            } else if key == 2 {
+                stats.swift = value;
+            } else if key == 3 {
+                stats.exp = value;
+            } else if key == 4 {
+                stats.atk_power = value;
+            } else if key == 5 {
+                stats.add_dmg = value;
             }
         }
-        Ok(Stats(stats))
+        Ok(stats)
     }
 }
 

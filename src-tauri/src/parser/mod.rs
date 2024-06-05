@@ -13,7 +13,7 @@ use crate::parser::entity_tracker::{get_current_and_max_hp, EntityTracker};
 use crate::parser::id_tracker::IdTracker;
 use crate::parser::models::{DamageData, EntityType, Identity, Stagger, VALID_ZONES};
 use crate::parser::party_tracker::PartyTracker;
-use crate::parser::stats_api::StatsApi;
+use crate::parser::stats_api::{StatsApi, API_URL};
 use crate::parser::status_tracker::{
     get_status_effect_value, StatusEffectDetails, StatusEffectTargetType, StatusEffectType,
     StatusTracker,
@@ -26,6 +26,8 @@ use log::{info, warn};
 use meter_core::packets::definitions::*;
 use meter_core::packets::opcodes::Pkt;
 use meter_core::{start_capture, start_raw_capture};
+use reqwest::Client;
+use serde_json::json;
 use std::cell::RefCell;
 use std::collections::BTreeMap;
 use std::path::PathBuf;
@@ -89,7 +91,11 @@ pub fn start(
     let mut duration = Duration::from_millis(200);
     let mut last_party_update = Instant::now();
     let party_duration = Duration::from_millis(2000);
-    let mut raid_end_cd: Instant = Instant::now();
+    let mut raid_end_cd = Instant::now();
+
+    let client = Client::new();
+    let mut last_heartbeat = Instant::now();
+    let heartbeat_duration = Duration::from_secs(60 * 5);
 
     let reset = Arc::new(AtomicBool::new(false));
     let pause = Arc::new(AtomicBool::new(false));
@@ -110,7 +116,7 @@ pub fn start(
     // this info is used in case meter was opened late
     let mut local_players: HashMap<u64, String> = HashMap::new();
     let mut local_player_path = window.app_handle().path_resolver().resource_dir().unwrap();
-    let mut client_id: String;
+    let mut client_id = "".to_string();
     local_player_path.push("local_players.json");
 
     if local_player_path.exists() {
@@ -208,8 +214,7 @@ pub fn start(
         if save.load(Ordering::Relaxed) {
             save.store(false, Ordering::Relaxed);
             state.party_info = update_party(&party_tracker, &entity_tracker);
-            let player_stats = stats_api.get_stats(&state, 0);
-            state.rdps_message = stats_api.status_message.clone();
+            let player_stats = stats_api.get_stats(&state);
             state.save_to_db(player_stats, true);
             state.saved = true;
             state.resetting = true;
@@ -295,7 +300,7 @@ pub fn start(
                     party_cache = None;
                     party_map_cache = HashMap::new();
                     let entity = entity_tracker.init_env(pkt);
-                    let player_stats = stats_api.get_stats(&state, 0);
+                    let player_stats = stats_api.get_stats(&state);
                     state.on_init_env(entity, player_stats);
                     stats_api.valid_zone = false;
                     get_and_set_region(region_file_path.as_ref(), &mut state);
@@ -314,7 +319,10 @@ pub fn start(
                         entity.id,
                         entity.character_id
                     );
-                    if !local_players.contains_key(&entity.character_id) {
+                    if local_players
+                        .get(&entity.character_id)
+                        .map_or(true, |cached| cached.as_str() != entity.name)
+                    {
                         local_players.insert(entity.character_id, entity.name.clone());
                         write_local_players(&local_players, &local_player_path)?;
                     }
@@ -349,7 +357,9 @@ pub fn start(
                     ));
                     if stats_api.valid_zone {
                         stats_api.sync(&entity, &state);
-                        if let Some(local_player) = entity_tracker.get_entity_ref(entity_tracker.local_entity_id) {
+                        if let Some(local_player) =
+                            entity_tracker.get_entity_ref(entity_tracker.local_entity_id)
+                        {
                             stats_api.sync(local_player, &state);
                         }
                     }
@@ -613,12 +623,7 @@ pub fn start(
                         .borrow()
                         .get_local_character_id(entity_tracker.local_entity_id);
                     let target_count = pkt.skill_damage_abnormal_move_events.len() as i32;
-                    let duration = if state.encounter.fight_start > 0 {
-                        now - state.encounter.fight_start
-                    } else {
-                        0
-                    };
-                    let player_stats = stats_api.get_stats(&state, duration);
+                    let player_stats = stats_api.get_stats(&state);
                     for event in pkt.skill_damage_abnormal_move_events.iter() {
                         let target_entity =
                             entity_tracker.get_or_create_entity(event.skill_damage_event.target_id);
@@ -667,12 +672,7 @@ pub fn start(
                         .borrow()
                         .get_local_character_id(entity_tracker.local_entity_id);
                     let target_count = pkt.skill_damage_events.len() as i32;
-                    let duration = if state.encounter.fight_start > 0 {
-                        now - state.encounter.fight_start
-                    } else {
-                        0
-                    };
-                    let player_stats = stats_api.get_stats(&state, duration);
+                    let player_stats = stats_api.get_stats(&state);
                     for event in pkt.skill_damage_events.iter() {
                         let target_entity = entity_tracker.get_or_create_entity(event.target_id);
                         // source_entity is to determine battle item
@@ -849,6 +849,7 @@ pub fn start(
                     if !state.raid_difficulty.is_empty() {
                         continue;
                     }
+                    debug_print(format_args!("raid zone id: {}", &pkt.zone_id));
                     match pkt.zone_level {
                         0 => {
                             state.raid_difficulty = "Normal".to_string();
@@ -968,9 +969,7 @@ pub fn start(
                         Some(party_map_cache.clone())
                     } else {
                         let party = update_party(&party_tracker, &entity_tracker);
-                        // check if both parties are resolved
-                        // if they are we then cache it
-                        if party.len() >= 2 && party[0].len() == 4 && party[1].len() == 4 {
+                        if party.len() > 1 {
                             party_cache = Some(party.clone());
                             party_map_cache = party
                                 .into_iter()
@@ -979,14 +978,6 @@ pub fn start(
                                 .collect();
 
                             Some(party_map_cache.clone())
-                        } else if party.len() > 1 {
-                            Some(
-                                party
-                                    .into_iter()
-                                    .enumerate()
-                                    .map(|(index, party)| (index as i32, party))
-                                    .collect(),
-                            )
                         } else {
                             None
                         }
@@ -1039,6 +1030,38 @@ pub fn start(
             party_cache = None;
             party_map_cache = HashMap::new();
         }
+
+        if last_heartbeat.elapsed() >= heartbeat_duration {
+            let client = client.clone();
+            let client_id = client_id.clone();
+            let version = window.app_handle().package_info().version.to_string();
+            let region = match state.region {
+                Some(ref region) => region.clone(),
+                None => continue,
+            };
+            tokio::task::spawn(async move {
+                let request_body = json!({
+                    "id": client_id,
+                    "version": version,
+                    "region": region,
+                });
+
+                match client
+                    .post(format!("{API_URL}/heartbeat"))
+                    .json(&request_body)
+                    .send()
+                    .await
+                {
+                    Ok(_) => {
+                        debug_print(format_args!("sent heartbeat"));
+                    }
+                    Err(e) => {
+                        warn!("failed to send heartbeat: {:?}", e);
+                    }
+                }
+            });
+            last_heartbeat = Instant::now();
+        }
     }
 
     Ok(())
@@ -1073,6 +1096,9 @@ fn on_shield_change(
     status_effect: StatusEffectDetails,
     change: u64,
 ) {
+    if change == 0 {
+        return;
+    }
     let source = entity_tracker.get_source_entity(status_effect.source_id);
     let target_id = if status_effect.target_type == StatusEffectTargetType::Party {
         id_tracker
