@@ -1,11 +1,11 @@
 {
-    "version": "v1.10.6-sync",
-    "notes": "### v1.10.6\n#### BUG FIXES AND IMPROVEMENTS\n- removed south america in region detection\n- remove brel gate 1 nightmare gehenna/helkasirs as bosses\n- add voldis g2 100x split dragons as bosses\n- add flag for manually saved encounters\n\n\nfull patch notes on [github](https://github.com/snoww/loa-logs/releases/latest)\n\nsend bug reports/suggestions to [#loa-logs](https://discord.gg/sbSa3pkDF5)(https://discord.gg/sbSa3pkDF5)",
-    "pub_date": "2024-06-05T13:42:18+00:00",
+    "version": "v1.10.7-sync",
+    "notes": "### v1.10.7\n#### NEW FEATURES\n- updates will be installed automatically at app start\n- added changelog tab on sidebar to see recent release notes\n#### BUG FIXES AND IMPROVEMENTS\n- fixed issue where parties were missing players in buff tab\n\nfull patch notes on [github](https://github.com/snoww/loa-logs/releases/latest)\n\nsend bug reports/suggestions to [#loa-logs](https://discord.gg/sbSa3pkDF5)",
+    "pub_date": "2024-06-09T17:02:17+00:00",
     "platforms": {
         "windows-x86_64": {
-            "url": "https://github.com/0fau/loa-logs/releases/download/v1.10.6-sync/LOA.Logs_1.10.6-sync_x64-setup.nsis.zip",
-            "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVTZlRuK1JUV2dxNG1VSmx5dlBmbS9OVHhqUU9CSWIvNHJrdUI4VUM4L3RlaUNjNUVleGl6cXpYcElRbE1yQ213dVpUV2VlclNldkRYcWtWUFhxK1NvY2J4SjNEUVNCdFFZPQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzE3NTk0Nzg1CWZpbGU6TE9BIExvZ3NfMS4xMC42LXN5bmNfeDY0LXNldHVwLm5zaXMuemlwCnI1cjdONFY4ZFQrRU5EN1cySHA2cU5CVVlXb210VVRORVM0REpNdXo1eFN3WFZzNkRPMS9Od200cVlKeEpKdURzUURoZEhJemhJbFFGeVJrVXp2dER3PT0K"
+            "url": "https://github.com/0fau/loa-logs/releases/download/v1.10.7-sync/LOA.Logs_1.10.7-sync_x64-setup.nsis.zip",
+            "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVTZlRuK1JUV2dxNHBrR2xtRzJaYS95ZlpYcjBTa050aE1NcWh5QlR3YXJjbWxldFQ0azdnbHkyVGVKM1hiSmJrcTZxaUp4M3pocmhYN09KNDZVOXcxVDJobW1CRFZsSmdrPQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzE3OTUyMzczCWZpbGU6TE9BIExvZ3NfMS4xMC43LXN5bmNfeDY0LXNldHVwLm5zaXMuemlwCkR3dmVMbytwbmlpeGhoa08rd1duanl4LytLSmJ2SFNmb2lJYTdpdkNCUm5HTDF4bEkzVHpmLzNMVVNJakxXVkFBWHlKMWxkd0JTZkxyQXdFa3RycEJRPT0K"
         }
     }
 }
